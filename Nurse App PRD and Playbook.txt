@@ -1,0 +1,264 @@
+Use this PRD and the outline for the design, plan, build process.
+
+Here’s a **ready-to-use PRD (Product Requirements Document)** for your Nurse Employment Experience App, structured for hand-off to a product/design/dev team.
+
+---
+
+# 🩺 Nurse Employment Experience App – Product Requirements Document (PRD)
+
+---
+
+## 1. **Objectives**
+
+* Provide a secure, anonymous platform for nurses to rate and review their workplace experiences.
+* Empower nurses to share insights on staffing, safety, pay, culture, and management without fear of retaliation.
+* Help healthcare organizations identify trends and improve workplace conditions through aggregated, de-identified feedback.
+* Ensure compliance with healthcare data privacy regulations (HIPAA, FERPA if applicable, and general data protection best practices).
+
+---
+
+## 2. **Target Users & Personas**
+
+1. **Bedside Nurses** – Primary reviewers who want to share experiences and browse employer ratings.
+2. **Nurse Managers / HR Staff** – Users who can access anonymized, aggregate data for insights.
+3. **Prospective Employees** – Nurses considering new positions who want to evaluate employers before applying.
+
+---
+
+## 3. **Key Features (MVP vs. Extended)**
+
+### MVP Features
+
+* **Anonymous Rating System**
+
+  * Star ratings (1–5 scale) across categories: staffing, pay/benefits, culture, safety, management support.
+  * Optional free-text feedback (filtered for PHI & defamatory content).
+* **Employer Directory & Search**
+
+  * Searchable by name, location, facility type.
+  * Browse reviews and aggregated scores.
+* **Authentication**
+
+  * Supabase auth (email or OAuth).
+  * Ensure anonymity for review submissions (store user ID but de-identify outputs).
+* **Moderation & Compliance**
+
+  * Use content moderation APIs to prevent harmful or non-compliant submissions.
+
+### Extended Features (Future Roadmap)
+
+* Trend dashboards (per hospital, per state, national averages).
+* Benchmark comparisons (e.g., compare hospitals in Michigan vs. national).
+* Peer comments and “upvote/downvote” on reviews.
+* Nurse mentoring & community resources.
+* Mobile wrapper (React Native or Expo) for App Store/Play Store.
+
+---
+
+## 4. **Compliance & Privacy**
+
+* **HIPAA**: No Protected Health Information (PHI) allowed in reviews; system must filter out patient identifiers.
+* **FERPA**: If nursing schools are included, ensure student data confidentiality.
+* **GDPR / US Privacy**: Allow users to request data deletion.
+* **Anonymity Assurance**:
+
+  * Reviews are stored with user IDs but displayed de-identified.
+  * Apply row-level security (RLS) in Supabase to prevent data leakage.
+* **Moderation**: AI-assisted text moderation (Google Perspective API or OpenAI moderation) for slurs, threats, or personally identifying details.
+
+---
+
+## 5. **System Architecture**
+
+* **Frontend**: Next.js + ShadCN components for clean, mobile-friendly UI.
+* **Backend**: Supabase (auth, database, RLS, APIs).
+* **Hosting**: Vercel (frontend + edge functions).
+* **Database**: Supabase Postgres with schema for Users, Employers, Ratings, Comments, Reports.
+* **Integrations**: Moderation API, Analytics Dashboard (Phase 2).
+
+---
+
+## 6. **Roadmap & Phasing**
+
+**Phase 1 (MVP – 3 months)**
+
+* Employer directory & search.
+* Anonymous ratings (core categories).
+* Authentication & anonymity rules.
+* Moderation pipeline.
+* Vercel deployment.
+
+**Phase 2 (Enhancements – 3–6 months)**
+
+* Aggregated dashboards (per employer, state).
+* Benchmarking features.
+* Review filters (date, category).
+
+**Phase 3 (Expansion – 6–12 months)**
+
+* Peer comment/upvote system.
+* Mentoring/community features.
+* Mobile app deployment.
+* Advanced analytics (export reports, HR dashboards).
+
+---
+
+## 7. **KPIs (Key Performance Indicators)**
+
+* **Adoption Metrics**
+
+  * # of registered nurse users.
+  * # of employers reviewed.
+* **Engagement Metrics**
+
+  * Avg. # of reviews per user.
+  * % of employers with ≥ 5 reviews.
+* **Quality Metrics**
+
+  * % of reviews flagged for moderation.
+  * Average moderation turnaround time.
+* **Impact Metrics**
+
+  * % of users who report the platform influenced their career decisions.
+  * # of employers who take documented action based on feedback.
+
+---
+
+✅ This PRD provides a **clear blueprint** for product/design/engineering to begin work. It captures **objectives, compliance, features, architecture, roadmap, and KPIs** in a structured way.
+
+---
+
+Would you like me to also generate a **database schema draft (SQL tables for Supabase)** that aligns with this PRD so your dev team has a technical head start?
+
+# 🩺 Nurse Employment Experience App – Claude Playbook
+
+---
+
+## 1. **Design (Conceptualize & Frame the Idea)**
+
+*Goal: Turn the concept of “nurse workplace rating” into a clear product vision.*
+
+**Steps:**
+
+1. **Define purpose** – Give nurses a safe, structured way to share honest feedback on their workplaces, while helping healthcare organizations learn and improve.
+2. **User personas & stories** –
+
+   * *As a bedside nurse, I want to rate my hospital on staffing, management, and safety so others understand working conditions.*
+   * *As a nurse manager, I want aggregate reports to see where staff are struggling, so I can address concerns.*
+3. **Feature brainstorming** –
+
+   * Core: anonymous rating system, rating categories (staffing ratios, scheduling, safety, pay, culture), free-text feedback, search/filter for facilities.
+   * Extras: trend reports, benchmarking by state/hospital type, peer comments, mentoring resources.
+4. **User flows & wireframes** – Examples:
+
+   * *Submit review flow* → login → select employer → rate categories → submit anonymously.
+   * *View reviews flow* → browse facilities → filter by location/size → see ratings & comments.
+5. **Constraints** –
+
+   * **Privacy & compliance**: protect nurse identities, respect HIPAA by not exposing patient data.
+   * **Moderation**: prevent defamatory or identifiable information.
+
+**Deliverables:**
+
+* Concept brief (why this matters to nurses)
+* MVP feature list (ratings, search, anonymity)
+* User flows (review submission, review browsing)
+* Risk notes (legal/privacy, moderation, healthcare HR pushback)
+
+---
+
+## 2. **Plan (Architecture & Specifications)**
+
+*Goal: Translate the idea into a technical & operational roadmap.*
+
+**Steps:**
+
+1. **Choose stack** –
+
+   * Frontend: Next.js + ShadCN for clean UI.
+   * Backend: Supabase (auth, database, RLS for tenanting data).
+   * Hosting: Vercel.
+   * Extras: moderation APIs (Perspective API), analytics dashboards.
+2. **Define system architecture** –
+
+   * Nurse user → Auth (Supabase) → Review DB → Aggregation & analytics → Display to other users.
+3. **Design data model** –
+
+   * Tables: *Users*, *Employers*, *Ratings*, *Comments*, *Reports*.
+   * Relationships: one nurse can leave many ratings; one employer has many ratings.
+4. **API contract** –
+
+   * `POST /ratings` → submit anonymous review.
+   * `GET /ratings?employer_id=123` → fetch reviews for hospital.
+   * `GET /employers/search?q=“Detroit”` → search employers.
+5. **Component breakdown** –
+
+   * Review form, star rating widget, anonymous ID system, employer directory, analytics dashboard.
+6. **Roadmap & phasing** –
+
+   * MVP: rating submission + employer search.
+   * Phase 2: aggregated reports + moderation tools.
+   * Phase 3: mobile app wrapper, benchmarking dashboards.
+7. **Testing & QA plan** –
+
+   * Validate anonymity (test that user ID is never tied to review display).
+   * Compliance checks (prevent PHI in submissions).
+
+**Deliverables:**
+
+* Technical architecture diagram
+* Database schema with sample entries
+* API endpoints list
+* Component map (frontend)
+* Phased roadmap (MVP → Phase 2 → Phase 3)
+
+---
+
+## 3. **Build (Implementation & Iteration)**
+
+*Goal: Produce a working MVP and refine based on nurse feedback.*
+
+**Steps:**
+
+1. **Scaffold project** – Set up Next.js repo, Supabase DB, deploy on Vercel.
+2. **Implement MVP features** –
+
+   * Anonymous review submission (Supabase row-level security rules).
+   * Employer search & browse.
+   * Ratings display (averages + latest reviews).
+3. **Integrate services** –
+
+   * Moderation filters for toxic/defamatory content.
+   * Secure authentication (nurses can log in but remain anonymous when posting).
+4. **Test continuously** –
+
+   * Unit tests for rating calculations.
+   * Privacy tests (confirm reviews are de-identified).
+5. **Document as you go** – README, setup docs, compliance guide.
+6. **Deploy & monitor** – Ship MVP to Vercel, monitor usage.
+7. **Iterate** – Add trend dashboards, nurse mentoring forums, “compare employers” tool.
+
+**Deliverables:**
+
+* Running MVP app (deployed on Vercel)
+* README with setup instructions
+* Privacy & compliance documentation
+* Feedback loop for early nurse testers
+
+---
+
+## 4. **Claude’s Role Throughout**
+
+* **Clarifier**: Ask questions about nurse workflows & compliance.
+* **Designer**: Generate flows, wireframes, schemas.
+* **Engineer**: Write boilerplate, React components, Supabase migrations.
+* **Reviewer**: Suggest legal/privacy adjustments.
+* **Documenter**: Produce policy briefs, FAQs, user guides for nurses.
+
+---
+
+⚡ **Result:** A structured, legally conscious app where nurses can **safely rate their employers**, healthcare orgs can **see anonymized feedback**, and stakeholders can **drive workplace improvements**.
+
+---
+
+👉 Do you want me to expand this into a **ready-to-use PRD (Product Requirements Document)** for the nurse app, with structured sections (objectives, features, compliance, roadmap, KPIs)? That would give you a “blueprint” you can hand directly to a dev team.
