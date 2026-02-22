@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Employer } from '@/lib/types';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { MobileFilterOverlay } from '@/components/employers/MobileFilterOverlay';
 
 const ALL_SPECIALTIES = ['ICU', 'ER', 'Med-Surg', 'L&D', 'NICU', 'Cardiac', 'Oncology', 'Neuro', 'Ortho', 'Psych'];
 
@@ -34,6 +36,7 @@ interface EmployersPageClientProps {
 }
 
 export function EmployersPageClient({ employers }: EmployersPageClientProps) {
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('rating');
   const [showFilters, setShowFilters] = useState(false);
@@ -142,7 +145,7 @@ export function EmployersPageClient({ employers }: EmployersPageClientProps) {
   const hasActiveFilters = selectedSpecialties.length > 0 || magnetOnly || unionOnly || newGradOnly || selectedShifts.length > 0 || minPay > 0;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -205,9 +208,30 @@ export function EmployersPageClient({ employers }: EmployersPageClientProps) {
           </CardContent>
         </Card>
 
-        {/* Filters Panel */}
-        {showFilters && (
-          <Card className="mb-6 border-teal-200 bg-gradient-to-br from-white to-teal-50/30">
+        {/* Mobile Filter Overlay */}
+        {isMobile && showFilters && (
+          <MobileFilterOverlay
+            selectedSpecialties={selectedSpecialties}
+            magnetOnly={magnetOnly}
+            unionOnly={unionOnly}
+            newGradOnly={newGradOnly}
+            selectedShifts={selectedShifts}
+            minPay={minPay}
+            resultCount={filteredEmployers.length}
+            onToggleSpecialty={toggleSpecialty}
+            onSetMagnetOnly={setMagnetOnly}
+            onSetUnionOnly={setUnionOnly}
+            onSetNewGradOnly={setNewGradOnly}
+            onToggleShift={toggleShift}
+            onSetMinPay={setMinPay}
+            onClearAll={clearAllFilters}
+            onClose={() => setShowFilters(false)}
+          />
+        )}
+
+        {/* Desktop Filters Panel */}
+        {!isMobile && showFilters && (
+          <Card className="mb-6 border-teal-200 bg-gradient-to-br from-background to-teal-50/30 dark:to-teal-950/10">
             <CardContent className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="font-semibold text-lg">Advanced Filters</h3>

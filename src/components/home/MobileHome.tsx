@@ -69,12 +69,12 @@ export default function MobileHome({ featuredEmployers, recentReviews, trendingH
                         <Link
                             key={action.href}
                             href={action.href}
-                            className="flex flex-col items-center gap-1.5 p-3 bg-white rounded-xl shadow-sm border"
+                            className="flex flex-col items-center gap-1.5 p-3 bg-background rounded-xl shadow-sm border"
                         >
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${action.color}`}>
                                 <action.icon className="w-5 h-5" />
                             </div>
-                            <span className="text-[11px] font-medium text-slate-700">{action.label}</span>
+                            <span className="text-[11px] font-medium text-foreground">{action.label}</span>
                         </Link>
                     ))}
                 </div>
@@ -125,7 +125,7 @@ export default function MobileHome({ featuredEmployers, recentReviews, trendingH
             )}
 
             {/* Simplified CTA */}
-            <section className="px-4 py-8 bg-teal-50">
+            <section className="px-4 py-8 bg-teal-50 dark:bg-teal-950/30">
                 <div className="text-center">
                     <h2 className="text-xl font-bold mb-2">Ready to share?</h2>
                     <p className="text-sm text-muted-foreground mb-4">

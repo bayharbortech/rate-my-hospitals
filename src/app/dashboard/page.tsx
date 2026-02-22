@@ -3,7 +3,7 @@ import { getApprovedReviews } from '@/lib/data/reviews';
 import { getCurrentUser } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { DashboardPageClient } from './DashboardPageClient';
+import { DashboardContent } from '@/components/dashboard/DashboardContent';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,14 +15,12 @@ export default async function DashboardPage() {
 
   const supabase = await createClient();
 
-  // Fetch user profile
   const { data: profile } = await supabase
     .from('users')
     .select('display_name, email')
     .eq('id', user.id)
     .single();
 
-  // Fetch user's own reviews (all statuses) with employer name
   const { data: userReviews } = await supabase
     .from('reviews')
     .select('*, employer:employers(name)')
@@ -35,7 +33,7 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <DashboardPageClient
+    <DashboardContent
       employers={employers}
       reviews={reviews}
       userReviews={userReviews || []}

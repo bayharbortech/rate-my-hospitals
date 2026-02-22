@@ -10,6 +10,7 @@ import {
     Menu, Stethoscope, MapPin, ArrowRightLeft, DollarSign,
     PenSquare, BookOpen, LayoutDashboard, ShieldCheck, X,
 } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
 interface MobileNavProps {
     isLoggedIn: boolean;
@@ -69,8 +70,8 @@ export function MobileNav({ isLoggedIn, isAdmin, pendingCount }: MobileNavProps)
                             onClick={() => setOpen(false)}
                             className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
                                 isActive(link.href)
-                                    ? 'bg-teal-50 text-teal-700 font-medium'
-                                    : 'text-slate-700 hover:bg-slate-50'
+                                    ? 'bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400 font-medium'
+                                    : 'text-foreground hover:bg-muted'
                             }`}
                         >
                             <link.icon className="h-4 w-4" />
@@ -87,8 +88,8 @@ export function MobileNav({ isLoggedIn, isAdmin, pendingCount }: MobileNavProps)
                             onClick={() => setOpen(false)}
                             className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
                                 isActive(link.href)
-                                    ? 'bg-teal-50 text-teal-700 font-medium'
-                                    : 'text-slate-700 hover:bg-slate-50'
+                                    ? 'bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400 font-medium'
+                                    : 'text-foreground hover:bg-muted'
                             }`}
                         >
                             <link.icon className="h-4 w-4" />
@@ -102,8 +103,8 @@ export function MobileNav({ isLoggedIn, isAdmin, pendingCount }: MobileNavProps)
                             onClick={() => setOpen(false)}
                             className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
                                 isActive('/dashboard')
-                                    ? 'bg-teal-50 text-teal-700 font-medium'
-                                    : 'text-slate-700 hover:bg-slate-50'
+                                    ? 'bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400 font-medium'
+                                    : 'text-foreground hover:bg-muted'
                             }`}
                         >
                             <LayoutDashboard className="h-4 w-4" />
@@ -133,6 +134,12 @@ export function MobileNav({ isLoggedIn, isAdmin, pendingCount }: MobileNavProps)
                             </Link>
                         </>
                     )}
+
+                    <Separator className="my-2" />
+                    <div className="px-4 py-2 flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Theme</span>
+                        <ThemeToggle />
+                    </div>
                 </nav>
             </SheetContent>
         </Sheet>

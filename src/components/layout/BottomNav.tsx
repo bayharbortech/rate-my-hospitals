@@ -21,7 +21,7 @@ export function BottomNav() {
     };
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white border-t shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
+        <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background border-t shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
             style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
             <div className="flex items-center justify-around h-14">
@@ -34,7 +34,7 @@ export function BottomNav() {
                             className={`flex flex-col items-center justify-center gap-0.5 w-full h-full text-xs transition-colors ${
                                 active
                                     ? 'text-teal-600'
-                                    : 'text-slate-400 hover:text-slate-600'
+                                    : 'text-muted-foreground hover:text-foreground'
                             }`}
                         >
                             <item.icon className={`h-5 w-5 ${active ? 'stroke-[2.5px]' : ''}`} />
