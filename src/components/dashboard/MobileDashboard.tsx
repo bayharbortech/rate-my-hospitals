@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { formatDate as formatDateUtil, getTimeAgo as getTimeAgoUtil } from '@/lib/constants';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { RatingStars } from '@/components/reviews/RatingStars';
 import { UserReviewCard } from '@/components/dashboard/UserReviewCard';
 import { Top40Dashboard } from '@/components/dashboard/Top40Dashboard';
 import { createClient } from '@/lib/supabase/client';
+import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 
 interface ReviewWithEmployerName extends Review {
     employer: { name: string };
@@ -63,6 +64,17 @@ export default function MobileDashboard({ employers, reviews, userReviews, userP
     const [savedReviewIds, setSavedReviewIds] = useState<string[]>([]);
     const [recentQuestions, setRecentQuestions] = useState<QuestionFromDB[]>([]);
     const supabase = createClient();
+
+    const tabIds = TABS.map(t => t.id);
+    const goNextTab = useCallback(() => {
+        const idx = tabIds.indexOf(activeTab);
+        if (idx < tabIds.length - 1) setActiveTab(tabIds[idx + 1]);
+    }, [activeTab, tabIds]);
+    const goPrevTab = useCallback(() => {
+        const idx = tabIds.indexOf(activeTab);
+        if (idx > 0) setActiveTab(tabIds[idx - 1]);
+    }, [activeTab, tabIds]);
+    const swipeRef = useSwipeNavigation({ onSwipeLeft: goNextTab, onSwipeRight: goPrevTab });
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -190,7 +202,7 @@ export default function MobileDashboard({ employers, reviews, userReviews, userP
             </div>
 
             {/* Tab content */}
-            <div className="px-4 py-4">
+            <div ref={swipeRef} className="px-4 py-4">
                 {activeTab === 'top40' && <Top40Dashboard />}
 
                 {activeTab === 'reviews' && (

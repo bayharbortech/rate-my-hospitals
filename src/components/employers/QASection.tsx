@@ -306,11 +306,17 @@ export function QASection({ employerId, employerName }: QASectionProps) {
   if (loading) {
     return (
       <Card>
-        <CardContent className="py-12">
-          <div className="flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
-            <span className="ml-2">Loading questions...</span>
-          </div>
+        <CardContent className="py-6 space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="border rounded-lg p-4 space-y-3 animate-pulse">
+              <div className="flex justify-between">
+                <div className="h-5 w-3/4 bg-muted rounded" />
+                <div className="h-4 w-16 bg-muted rounded" />
+              </div>
+              <div className="h-4 w-full bg-muted rounded" />
+              <div className="h-4 w-2/3 bg-muted rounded" />
+            </div>
+          ))}
         </CardContent>
       </Card>
     );

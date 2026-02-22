@@ -3,7 +3,8 @@ import { BLOG_AUTHOR, BLOG_AUTHOR_SUBTITLE } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays, Clock, ArrowLeft, Share2, ArrowRight, Tag } from "lucide-react";
+import { ShareButton } from "@/components/ui/ShareButton";
+import { CalendarDays, Clock, ArrowLeft, ArrowRight, Tag } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -138,9 +139,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                                     <p className="text-xs text-muted-foreground">{BLOG_AUTHOR_SUBTITLE}</p>
                                 </div>
                             </div>
-                            <Button variant="outline" size="sm" className="gap-2">
-                                <Share2 className="w-4 h-4" /> Share
-                            </Button>
+                            <ShareButton
+                                title={post.title}
+                                text={`${post.title} - RateMyHospital Blog`}
+                                url={`/blog/${post.id}`}
+                            />
                         </div>
 
                         <div

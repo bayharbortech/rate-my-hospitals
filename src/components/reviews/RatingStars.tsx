@@ -3,7 +3,7 @@ import { Star, StarHalf } from 'lucide-react';
 interface RatingStarsProps {
     rating: number;
     max?: number;
-    size?: 'sm' | 'md' | 'lg';
+    size?: 'sm' | 'md' | 'lg' | 'xl';
     showValue?: boolean;
 }
 
@@ -15,7 +15,8 @@ export function RatingStars({ rating, max = 5, size = 'md', showValue = false }:
     const sizeClasses = {
         sm: 'h-3 w-3',
         md: 'h-4 w-4',
-        lg: 'h-5 w-5'
+        lg: 'h-5 w-5',
+        xl: 'h-6 w-6',
     };
 
     return (

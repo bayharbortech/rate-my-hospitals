@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Employer, Review, Salary, Interview } from '@/lib/types';
 import { RatingStars } from '@/components/reviews/RatingStars';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { MapPin, Award, Users, GraduationCap, DollarSign, Star } from 'lucide-re
 import Link from 'next/link';
 import { EmployerActions } from '@/components/employers/EmployerActions';
 import { EmployerTabs } from '@/components/employers/EmployerTabs';
+import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 
 interface MobileEmployerDetailProps {
     employer: Employer;
@@ -46,6 +47,20 @@ export default function MobileEmployerDetail({
         { id: 'salaries', label: 'Salaries', count: salaries.length },
         { id: 'interviews', label: 'Interviews', count: interviews.length },
     ];
+
+    const tabIds = tabs.map(t => t.id);
+
+    const goNext = useCallback(() => {
+        const idx = tabIds.indexOf(activeTab);
+        if (idx < tabIds.length - 1) setActiveTab(tabIds[idx + 1]);
+    }, [activeTab, tabIds]);
+
+    const goPrev = useCallback(() => {
+        const idx = tabIds.indexOf(activeTab);
+        if (idx > 0) setActiveTab(tabIds[idx - 1]);
+    }, [activeTab, tabIds]);
+
+    const swipeRef = useSwipeNavigation({ onSwipeLeft: goNext, onSwipeRight: goPrev });
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -124,7 +139,7 @@ export default function MobileEmployerDetail({
             </div>
 
             {/* Tab content */}
-            <div className="px-4 py-4">
+            <div ref={swipeRef} className="px-4 py-4">
                 {activeTab === 'overview' && (
                     <div className="space-y-4">
                         {/* Rating breakdown */}

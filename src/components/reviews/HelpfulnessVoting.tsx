@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { hapticLight } from '@/lib/haptics';
 
 interface HelpfulnessVotingProps {
     reviewId: string;
@@ -41,6 +42,7 @@ export function HelpfulnessVoting({ reviewId, initialUpvotes, initialDownvotes }
     };
 
     const handleVote = async (type: 'helpful' | 'not_helpful') => {
+        hapticLight();
         setLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
 

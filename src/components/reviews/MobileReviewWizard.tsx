@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Check, ChevronsUpDown, CheckCircle, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { hapticSuccess } from '@/lib/haptics';
 import { useRouter } from 'next/navigation';
 import { Employer } from '@/lib/types';
 import { POSITION_TYPES } from '@/lib/constants';
@@ -150,6 +151,7 @@ export default function MobileReviewWizard({ employers: initialEmployers, userId
                 throw new Error(data.error || 'Failed to submit review');
             }
             setSubmitted(true);
+            hapticSuccess();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to submit review');
         } finally {

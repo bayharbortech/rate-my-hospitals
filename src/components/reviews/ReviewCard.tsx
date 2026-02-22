@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { RatingStars } from '@/components/reviews/RatingStars';
 import { HelpfulnessVoting } from '@/components/reviews/HelpfulnessVoting';
 import { SaveReviewButton } from '@/components/reviews/SaveReviewButton';
+import { ShareButton } from '@/components/ui/ShareButton';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface ReviewCardProps {
@@ -29,6 +30,12 @@ export function ReviewCard({ review, showSaveButton = true }: ReviewCardProps) {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        <ShareButton
+                            title={review.title}
+                            text={`Check out this review on RateMyHospital`}
+                            url={`/employers/${review.employer_id}`}
+                            compact
+                        />
                         {showSaveButton && <SaveReviewButton reviewId={review.id} />}
                         <div className="flex flex-col items-end gap-1">
                             <RatingStars rating={review.rating_overall} showValue />

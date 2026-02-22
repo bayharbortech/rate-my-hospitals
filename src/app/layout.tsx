@@ -6,6 +6,8 @@ import { HeaderWrapper } from "@/components/layout/HeaderWrapper";
 import { Footer } from "@/components/layout/Footer";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ServiceWorkerRegistration } from "@/components/layout/ServiceWorkerRegistration";
+import { InstallBanner } from "@/components/layout/InstallBanner";
+import { ScrollToTop } from "@/components/ui/ScrollToTop";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -40,9 +42,11 @@ export default function RootLayout({
           <HeaderWrapper>
             <Header />
           </HeaderWrapper>
+          <InstallBanner />
           <main className="flex-1 pb-16 md:pb-0">{children}</main>
           <Footer />
           <BottomNav />
+          <ScrollToTop />
         </div>
       </body>
     </html>

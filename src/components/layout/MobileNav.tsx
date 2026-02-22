@@ -8,9 +8,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Separator } from '@/components/ui/separator';
 import {
     Menu, Stethoscope, MapPin, ArrowRightLeft, DollarSign,
-    PenSquare, BookOpen, LayoutDashboard, ShieldCheck, X,
+    PenSquare, BookOpen, LayoutDashboard, ShieldCheck, X, Download,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 
 interface MobileNavProps {
     isLoggedIn: boolean;
@@ -33,6 +34,7 @@ const ACTION_LINKS = [
 export function MobileNav({ isLoggedIn, isAdmin, pendingCount }: MobileNavProps) {
     const [open, setOpen] = useState(false);
     const pathname = usePathname();
+    const { canInstall, promptInstall } = usePWAInstall();
 
     const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
@@ -140,6 +142,16 @@ export function MobileNav({ isLoggedIn, isAdmin, pendingCount }: MobileNavProps)
                         <span className="text-sm text-muted-foreground">Theme</span>
                         <ThemeToggle />
                     </div>
+
+                    {canInstall && (
+                        <button
+                            onClick={() => { promptInstall(); setOpen(false); }}
+                            className="flex items-center gap-3 px-4 py-3 text-sm text-teal-600 font-medium hover:bg-teal-50 dark:hover:bg-teal-950/30 w-full transition-colors"
+                        >
+                            <Download className="h-4 w-4" />
+                            Install App
+                        </button>
+                    )}
                 </nav>
             </SheetContent>
         </Sheet>

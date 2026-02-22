@@ -2,6 +2,8 @@
 
 import { Star, Cat } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { hapticLight } from '@/lib/haptics';
 
 interface RatingsSectionProps {
     ratings: Record<string, number>;
@@ -20,6 +22,10 @@ export function RatingsSection({
     cattiness,
     onCattinessChange,
 }: RatingsSectionProps) {
+    const isMobile = useIsMobile();
+    const starSize = isMobile ? 'h-8 w-8' : 'h-6 w-6';
+    const starPadding = isMobile ? 'p-1.5' : 'p-1';
+
     return (
         <div className="space-y-4">
             <h3 className="font-semibold text-lg">Ratings</h3>
@@ -32,13 +38,13 @@ export function RatingsSection({
                                 <button
                                     key={star}
                                     type="button"
-                                    onClick={() => onRatingChange(category, star)}
-                                    className={`p-1 transition-colors ${star <= ratings[category]
+                                    onClick={() => { hapticLight(); onRatingChange(category, star); }}
+                                    className={`${starPadding} transition-colors ${star <= ratings[category]
                                         ? 'text-yellow-500'
                                         : 'text-slate-300 hover:text-yellow-200'
                                         }`}
                                 >
-                                    <Star className="h-6 w-6 fill-current" />
+                                    <Star className={`${starSize} fill-current`} />
                                 </button>
                             ))}
                         </div>
@@ -72,13 +78,13 @@ export function RatingsSection({
                         <button
                             key={level}
                             type="button"
-                            onClick={() => onCattinessChange(level)}
-                            className={`p-1 transition-colors ${level <= cattiness
+                            onClick={() => { hapticLight(); onCattinessChange(level); }}
+                            className={`${starPadding} transition-colors ${level <= cattiness
                                 ? 'text-orange-500'
                                 : 'text-slate-300 hover:text-orange-200'
                                 }`}
                         >
-                            <Cat className="h-6 w-6 fill-current" />
+                            <Cat className={`${starSize} fill-current`} />
                         </button>
                     ))}
                 </div>
