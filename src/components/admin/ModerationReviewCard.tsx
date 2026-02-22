@@ -211,14 +211,9 @@ export function ModerationReviewCard({
                         <div className="flex flex-wrap gap-2">
                             <Button
                                 size="sm"
-                                className={aiResult?.recommendation === 'approve'
-                                    ? 'bg-green-600 hover:bg-green-700'
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'}
+                                className="bg-green-600 hover:bg-green-700"
                                 onClick={() => onModerate('approved')}
-                                disabled={isLoading || aiResult?.recommendation !== 'approve'}
-                                title={aiResult?.recommendation !== 'approve'
-                                    ? 'AI must recommend Approve before this review can be approved'
-                                    : undefined}
+                                disabled={isLoading}
                             >
                                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Check className="h-4 w-4 mr-1" />}
                                 Approve
