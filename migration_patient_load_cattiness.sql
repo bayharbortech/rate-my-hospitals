@@ -9,3 +9,5 @@ ADD COLUMN IF NOT EXISTS patient_load text;
 ALTER TABLE public.reviews
 ADD COLUMN IF NOT EXISTS rating_cattiness integer
 CHECK (rating_cattiness >= 1 AND rating_cattiness <= 5);
+
+-- End of migration
