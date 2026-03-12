@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getYear } from 'date-fns';
 import { Stethoscope } from 'lucide-react';
 
 export function Footer() {
@@ -45,7 +46,7 @@ export function Footer() {
                 </div>
 
                 <div className="mt-10 border-t pt-6 text-center text-sm text-muted-foreground">
-                    <p>&copy; {new Date().getFullYear()} RateMyHospital. All rights reserved.</p>
+                    <p>&copy; {getYear(new Date())} RateMyHospital. All rights reserved.</p>
                 </div>
             </div>
         </footer>

@@ -1,3 +1,4 @@
+import { subDays, differenceInDays, isAfter } from 'date-fns';
 import { mockEmployers, mockReviews } from './mock-data';
 import { Employer } from './types';
 
@@ -26,9 +27,8 @@ export interface TrendingHospital {
  */
 export function getTrendingHospitals(limit: number = 3, daysWindow: number = 30): TrendingHospital[] {
   const now = new Date();
-  const windowStart = new Date(now.getTime() - daysWindow * 24 * 60 * 60 * 1000);
+  const windowStart = subDays(now, daysWindow);
 
-  // Calculate review counts per employer within the time window
   const reviewScores = new Map<string, { count: number; weightedScore: number }>();
 
   mockReviews
@@ -36,13 +36,11 @@ export function getTrendingHospitals(limit: number = 3, daysWindow: number = 30)
     .forEach(review => {
       const reviewDate = new Date(review.created_at);
 
-      // Check if review is within the time window
-      if (reviewDate >= windowStart) {
+      if (isAfter(reviewDate, windowStart)) {
         const employerId = review.employer_id;
         const current = reviewScores.get(employerId) || { count: 0, weightedScore: 0 };
 
-        // Calculate recency weight (1.0 for today, decreasing to 0.5 for oldest in window)
-        const daysAgo = (now.getTime() - reviewDate.getTime()) / (24 * 60 * 60 * 1000);
+        const daysAgo = differenceInDays(now, reviewDate);
         const recencyWeight = 1 - (daysAgo / daysWindow) * 0.5;
 
         reviewScores.set(employerId, {

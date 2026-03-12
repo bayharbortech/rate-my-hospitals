@@ -1,3 +1,4 @@
+import { formatISO } from 'date-fns';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { runAIReview } from '@/lib/ai-review';
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest) {
                     .update({
                         status: 'revision_requested',
                         admin_comment: autoComment,
-                        updated_at: new Date().toISOString(),
+                        updated_at: formatISO(new Date()),
                     })
                     .eq('id', review.id);
             }

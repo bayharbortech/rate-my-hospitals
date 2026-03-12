@@ -1,3 +1,4 @@
+import { formatISO } from 'date-fns';
 import { requireAdmin } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -40,7 +41,7 @@ export async function PUT(
 
     const updateData: Record<string, unknown> = {
         status: body.status,
-        updated_at: new Date().toISOString(),
+        updated_at: formatISO(new Date()),
     };
 
     if (body.admin_comment) {

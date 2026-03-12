@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { compareDesc } from 'date-fns';
 import { formatDate as formatDateUtil, getTimeAgo as getTimeAgoUtil } from '@/lib/constants';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -177,10 +178,9 @@ export function DashboardPageClient({ employers, reviews, userReviews, userProfi
       });
     });
 
-    // Sort by date
-    return activities.sort((a, b) =>
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    ).slice(0, 10);
+    return activities
+      .sort((a, b) => compareDesc(new Date(a.date), new Date(b.date)))
+      .slice(0, 10);
   }, [savedHospitals, recentQuestions, reviews, employerMap]);
 
   const toggleNotifications = (hospitalId: string) => {

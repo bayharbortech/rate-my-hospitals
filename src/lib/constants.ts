@@ -12,23 +12,19 @@ export const BLOG_NAME = 'The Nursing Station';
 export const BLOG_AUTHOR = 'The Nursing Station';
 export const BLOG_AUTHOR_SUBTITLE = 'Editorial Team';
 
-// Date formatting
-export const DATE_FORMAT_LONG: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-};
-
-export const DATE_FORMAT_SHORT: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-};
+import {
+    format,
+    parseISO,
+    isToday,
+    isYesterday,
+    differenceInDays,
+    differenceInWeeks,
+    differenceInMonths,
+} from 'date-fns';
 
 export function formatDate(date: Date | string, style: 'long' | 'short' = 'long'): string {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    const options = style === 'short' ? DATE_FORMAT_SHORT : DATE_FORMAT_LONG;
-    return d.toLocaleDateString('en-US', options);
+    const d = typeof date === 'string' ? parseISO(date) : date;
+    return format(d, style === 'short' ? 'MMM d, yyyy' : 'MMMM d, yyyy');
 }
 
 export function estimateReadTime(text: string): string {
@@ -37,17 +33,16 @@ export function estimateReadTime(text: string): string {
     return `${minutes} min read`;
 }
 
-// Relative time display
 export function getTimeAgo(dateString: string): string {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-    return `${Math.floor(diffInDays / 30)} months ago`;
+    const date = parseISO(dateString);
+    if (isToday(date)) return 'Today';
+    if (isYesterday(date)) return 'Yesterday';
+    const days = differenceInDays(new Date(), date);
+    if (days < 7) return `${days} days ago`;
+    const weeks = differenceInWeeks(new Date(), date);
+    if (weeks < 5) return `${weeks} week${weeks !== 1 ? 's' : ''} ago`;
+    const months = differenceInMonths(new Date(), date);
+    return `${months} month${months !== 1 ? 's' : ''} ago`;
 }
 
 // Review form options

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { BlogPostRequest } from '@/lib/types';
+import { formatISO } from 'date-fns';
 import { DEFAULT_BLOG_IMAGE, DEFAULT_READ_TIME, formatDate } from '@/lib/constants';
 
 export async function GET() {
@@ -89,7 +90,7 @@ export async function PUT(request: NextRequest) {
             content: body.content,
             tags: body.tags,
             status: body.status,
-            updated_at: new Date().toISOString(),
+            updated_at: formatISO(new Date()),
         })
         .eq('id', body.id)
         .select()

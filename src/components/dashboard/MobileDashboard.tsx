@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { compareDesc } from 'date-fns';
 import { formatDate as formatDateUtil, getTimeAgo as getTimeAgoUtil } from '@/lib/constants';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -131,7 +132,7 @@ export default function MobileDashboard({ employers, reviews, userReviews, userP
         recentQuestions.forEach(q => {
             activities.push({ id: q.id, type: 'question', employerName: employerMap.get(q.employer_id)?.name || 'Unknown', employerId: q.employer_id, preview: q.question_text.slice(0, 60), date: q.created_at });
         });
-        return activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10);
+        return activities.sort((a, b) => compareDesc(new Date(a.date), new Date(b.date))).slice(0, 10);
     }, [savedHospitals, recentQuestions, reviews, employerMap]);
 
     const removeFromSaved = (id: string) => {

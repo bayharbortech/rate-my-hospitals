@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { format, parseISO } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -97,10 +98,7 @@ export function InterviewSection({ interviews, employerName }: InterviewSectionP
   };
 
   const formatMonthYear = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      year: 'numeric'
-    });
+    return format(parseISO(dateString), 'MMM yyyy');
   };
 
   return (

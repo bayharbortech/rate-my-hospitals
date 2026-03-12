@@ -1,5 +1,6 @@
 import { Review, AIReviewResult } from '@/lib/types';
 import { formatDate } from '@/lib/constants';
+import { differenceInHours, differenceInDays, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,20 +24,18 @@ interface AgingInfo {
 }
 
 export function getAgingInfo(createdAt: string): AgingInfo {
-    const now = new Date();
-    const created = new Date(createdAt);
-    const diffMs = now.getTime() - created.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
-    const diffDays = Math.floor(diffHours / 24);
+    const created = parseISO(createdAt);
+    const hours = differenceInHours(new Date(), created);
+    const days = differenceInDays(new Date(), created);
 
-    if (diffHours < 24) {
+    if (hours < 24) {
         return { label: 'New', color: 'text-green-700', bgColor: 'bg-green-100' };
-    } else if (diffDays <= 3) {
-        return { label: `${diffDays}d ago`, color: 'text-yellow-700', bgColor: 'bg-yellow-100' };
-    } else if (diffDays <= 7) {
-        return { label: `${diffDays}d ago`, color: 'text-orange-700', bgColor: 'bg-orange-100' };
+    } else if (days <= 3) {
+        return { label: `${days}d ago`, color: 'text-yellow-700', bgColor: 'bg-yellow-100' };
+    } else if (days <= 7) {
+        return { label: `${days}d ago`, color: 'text-orange-700', bgColor: 'bg-orange-100' };
     } else {
-        return { label: `${diffDays}d ago`, color: 'text-red-700', bgColor: 'bg-red-100' };
+        return { label: `${days}d ago`, color: 'text-red-700', bgColor: 'bg-red-100' };
     }
 }
 

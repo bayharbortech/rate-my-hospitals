@@ -1,3 +1,4 @@
+import { subDays } from 'date-fns';
 import { createClient } from '@/lib/supabase/server';
 
 export interface TrendingHospital {
@@ -15,7 +16,7 @@ export async function getTrendingHospitals(
   daysWindow: number = 30
 ): Promise<TrendingHospital[]> {
   const supabase = await createClient();
-  const windowStart = new Date(Date.now() - daysWindow * 24 * 60 * 60 * 1000);
+  const windowStart = subDays(new Date(), daysWindow);
 
   // Get recent approved reviews with employer data
   const { data: reviews, error } = await supabase

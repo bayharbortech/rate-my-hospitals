@@ -1,3 +1,4 @@
+import { formatISO } from 'date-fns';
 import { requireAdmin } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
@@ -49,7 +50,7 @@ export async function PUT(request: NextRequest) {
         .upsert({
             key: body.key,
             value: body.value,
-            updated_at: new Date().toISOString(),
+            updated_at: formatISO(new Date()),
         });
 
     if (error) {

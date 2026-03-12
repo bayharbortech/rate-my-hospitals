@@ -1,3 +1,4 @@
+import { formatISO } from 'date-fns';
 import Anthropic from '@anthropic-ai/sdk';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AIReviewResult } from '@/lib/types';
@@ -151,7 +152,7 @@ ${review.review_text}
             .from('reviews')
             .update({
                 ai_review_result: aiResult,
-                updated_at: new Date().toISOString(),
+                updated_at: formatISO(new Date()),
             })
             .eq('id', reviewId);
 

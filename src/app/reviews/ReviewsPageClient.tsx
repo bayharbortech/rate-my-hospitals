@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { compareDesc, compareAsc } from 'date-fns';
 import Link from 'next/link';
 import { Employer, Review } from '@/lib/types';
 import { ReviewCard } from '@/components/reviews/ReviewCard';
@@ -86,16 +87,10 @@ export function ReviewsPageClient({ reviews, employers, departments }: ReviewsPa
     // Sort
     switch (sortBy) {
       case 'newest':
-        result.sort(
-          (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
+        result.sort((a, b) => compareDesc(new Date(a.created_at), new Date(b.created_at)));
         break;
       case 'oldest':
-        result.sort(
-          (a, b) =>
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
+        result.sort((a, b) => compareAsc(new Date(a.created_at), new Date(b.created_at)));
         break;
       case 'highest':
         result.sort((a, b) => b.rating_overall - a.rating_overall);

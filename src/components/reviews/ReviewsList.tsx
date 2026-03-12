@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react';
+import { compareDesc } from 'date-fns';
 import { Review } from '@/lib/types';
 import { ReviewCard } from '@/components/reviews/ReviewCard';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,7 @@ export function ReviewsList({ reviews, employerId }: ReviewsListProps) {
         result.sort((a, b) => {
             switch (sortBy) {
                 case 'newest':
-                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                    return compareDesc(new Date(b.created_at), new Date(a.created_at));
                 case 'highest_rated':
                     return b.rating_overall - a.rating_overall;
                 case 'lowest_rated':

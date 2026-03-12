@@ -1,3 +1,4 @@
+import { formatISO } from 'date-fns';
 import { requireAdmin } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -74,7 +75,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const updateData: Record<string, unknown> = {
-        updated_at: new Date().toISOString(),
+        updated_at: formatISO(new Date()),
     };
 
     if (body.title !== undefined) {
