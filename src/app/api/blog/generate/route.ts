@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Topic title is required' }, { status: 400 });
     }
 
+    // Set ANTHROPIC_API_KEY in .env.local (local) or Vercel Environment Variables (production)
     const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
     if (!apiKey) {
         return NextResponse.json(
