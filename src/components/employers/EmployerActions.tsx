@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 interface EmployerActionsProps {
   employerId: string;
@@ -22,21 +23,19 @@ export function EmployerActions({ employerId, employerName }: EmployerActionsPro
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingFollow, setIsCheckingFollow] = useState(true);
   const [showCopied, setShowCopied] = useState(false);
-  const [user, setUser] = useState<{ id: string } | null>(null);
+  const { user, fetchUser } = useAuthStore();
   const router = useRouter();
   const supabase = createClient();
 
-  // Check if user is logged in and if they're following this employer
+  useEffect(() => { fetchUser(); }, [fetchUser]);
+
   useEffect(() => {
     const checkFollowStatus = async () => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      setUser(currentUser);
-
-      if (currentUser) {
+      if (user) {
         const { data } = await supabase
           .from('saved_hospitals')
           .select('id')
-          .eq('user_id', currentUser.id)
+          .eq('user_id', user.id)
           .eq('employer_id', employerId)
           .single();
 
@@ -46,7 +45,7 @@ export function EmployerActions({ employerId, employerName }: EmployerActionsPro
     };
 
     checkFollowStatus();
-  }, [employerId, supabase]);
+  }, [employerId, supabase, user]);
 
   const handleFollow = async () => {
     // If not logged in, redirect to login

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { hapticLight } from '@/lib/haptics';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 interface HelpfulnessVotingProps {
     reviewId: string;
@@ -20,31 +21,30 @@ export function HelpfulnessVoting({ reviewId, initialUpvotes, initialDownvotes }
     const [loading, setLoading] = useState(false);
     const supabase = createClient();
     const router = useRouter();
+    const { user, fetchUser } = useAuthStore();
+
+    useEffect(() => { fetchUser(); }, [fetchUser]);
 
     useEffect(() => {
-        checkUserVote();
-    }, []);
-
-    const checkUserVote = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
+        const checkVote = async () => {
+            const { data } = await supabase
+                .from('review_votes')
+                .select('vote_type')
+                .eq('review_id', reviewId)
+                .eq('user_id', user.id)
+                .single();
 
-        const { data } = await supabase
-            .from('review_votes')
-            .select('vote_type')
-            .eq('review_id', reviewId)
-            .eq('user_id', user.id)
-            .single();
-
-        if (data) {
-            setUserVote(data.vote_type as 'helpful' | 'not_helpful');
-        }
-    };
+            if (data) {
+                setUserVote(data.vote_type as 'helpful' | 'not_helpful');
+            }
+        };
+        checkVote();
+    }, [user, reviewId, supabase]);
 
     const handleVote = async (type: 'helpful' | 'not_helpful') => {
         hapticLight();
         setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
             router.push('/login');

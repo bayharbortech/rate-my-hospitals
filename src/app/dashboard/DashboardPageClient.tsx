@@ -36,6 +36,7 @@ import { RatingStars } from '@/components/reviews/RatingStars';
 import { UserReviewCard } from '@/components/dashboard/UserReviewCard';
 import { Top40Dashboard } from '@/components/dashboard/Top40Dashboard';
 import { createClient } from '@/lib/supabase/client';
+import { useSavedStore } from '@/stores/useSavedStore';
 
 interface ReviewWithEmployerName extends Review {
   employer: { name: string };
@@ -48,8 +49,6 @@ interface DashboardPageClientProps {
   userProfile: { email: string; display_name: string | null };
 }
 
-// Local storage keys
-const SAVED_REVIEWS_KEY = 'rate-my-hospitals-saved-reviews';
 const SAVED_HOSPITALS_KEY = 'rate-my-hospitals-saved-hospitals';
 
 interface SavedHospital {
@@ -77,18 +76,15 @@ const getInitialSavedHospitals = (): SavedHospital[] => {
 export function DashboardPageClient({ employers, reviews, userReviews, userProfile }: DashboardPageClientProps) {
   const [activeTab, setActiveTab] = useState('reviews');
   const [savedHospitals, setSavedHospitals] = useState<SavedHospital[]>([]);
-  const [savedReviewIds, setSavedReviewIds] = useState<string[]>([]);
+  const { savedReviewIds, toggleReview } = useSavedStore();
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
   const [recentQuestions, setRecentQuestions] = useState<QuestionFromDB[]>([]);
   const supabase = createClient();
 
-  // Load saved data from localStorage
+  // Load saved hospitals from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedReviews = JSON.parse(localStorage.getItem(SAVED_REVIEWS_KEY) || '[]');
-      setSavedReviewIds(savedReviews);
-
       const savedHospitalsData = JSON.parse(localStorage.getItem(SAVED_HOSPITALS_KEY) || '[]');
       setSavedHospitals(savedHospitalsData);
     }
@@ -207,9 +203,7 @@ export function DashboardPageClient({ employers, reviews, userReviews, userProfi
   };
 
   const removeReviewFromSaved = (reviewId: string) => {
-    const newSaved = savedReviewIds.filter(id => id !== reviewId);
-    setSavedReviewIds(newSaved);
-    localStorage.setItem(SAVED_REVIEWS_KEY, JSON.stringify(newSaved));
+    toggleReview(reviewId);
   };
 
   const startEditingNotes = (hospitalId: string, currentNotes: string) => {

@@ -9,49 +9,36 @@ import {
     X, Building2, Award, Users, GraduationCap,
     Sun, Moon, RefreshCw, DollarSign,
 } from 'lucide-react';
+import { useEmployerFiltersStore } from '@/stores/useEmployerFiltersStore';
 
 const ALL_SPECIALTIES = ['ICU', 'ER', 'Med-Surg', 'L&D', 'NICU', 'Cardiac', 'Oncology', 'Neuro', 'Ortho', 'Psych'];
 
 interface MobileFilterOverlayProps {
-    selectedSpecialties: string[];
-    magnetOnly: boolean;
-    unionOnly: boolean;
-    newGradOnly: boolean;
-    selectedShifts: string[];
-    minPay: number;
     resultCount: number;
-    onToggleSpecialty: (s: string) => void;
-    onSetMagnetOnly: (v: boolean) => void;
-    onSetUnionOnly: (v: boolean) => void;
-    onSetNewGradOnly: (v: boolean) => void;
-    onToggleShift: (s: string) => void;
-    onSetMinPay: (v: number) => void;
-    onClearAll: () => void;
     onClose: () => void;
 }
 
-export function MobileFilterOverlay({
-    selectedSpecialties, magnetOnly, unionOnly, newGradOnly,
-    selectedShifts, minPay, resultCount,
-    onToggleSpecialty, onSetMagnetOnly, onSetUnionOnly, onSetNewGradOnly,
-    onToggleShift, onSetMinPay, onClearAll, onClose,
-}: MobileFilterOverlayProps) {
+export function MobileFilterOverlay({ resultCount, onClose }: MobileFilterOverlayProps) {
+    const {
+        selectedSpecialties, magnetOnly, unionOnly, newGradOnly,
+        selectedShifts, minPay,
+        toggleSpecialty, setMagnetOnly, setUnionOnly, setNewGradOnly,
+        toggleShift, setMinPay, clearAll,
+    } = useEmployerFiltersStore();
+
     return (
         <div className="fixed inset-0 z-50 bg-background flex flex-col">
-            {/* Sticky header */}
             <div className="flex items-center justify-between px-4 py-3 border-b">
                 <h2 className="text-lg font-semibold">Filters</h2>
                 <div className="flex items-center gap-3">
-                    <button onClick={onClearAll} className="text-sm text-teal-600 font-medium">Clear All</button>
+                    <button onClick={clearAll} className="text-sm text-teal-600 font-medium">Clear All</button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
                         <X className="h-5 w-5" />
                     </Button>
                 </div>
             </div>
 
-            {/* Scrollable body */}
             <div className="flex-1 overflow-y-auto px-4 py-5 space-y-8">
-                {/* Specialties */}
                 <div>
                     <Label className="text-sm font-semibold flex items-center gap-2 mb-3">
                         <Building2 className="w-4 h-4" /> Specialties / Units
@@ -60,7 +47,7 @@ export function MobileFilterOverlay({
                         {ALL_SPECIALTIES.map(s => (
                             <button
                                 key={s}
-                                onClick={() => onToggleSpecialty(s)}
+                                onClick={() => toggleSpecialty(s)}
                                 className={`px-4 py-2 text-sm rounded-full border transition-colors ${
                                     selectedSpecialties.includes(s)
                                         ? 'bg-teal-600 text-white border-teal-600'
@@ -73,7 +60,6 @@ export function MobileFilterOverlay({
                     </div>
                 </div>
 
-                {/* Features */}
                 <div>
                     <Label className="text-sm font-semibold flex items-center gap-2 mb-3">
                         <Award className="w-4 h-4" /> Hospital Features
@@ -83,24 +69,23 @@ export function MobileFilterOverlay({
                             <label className="text-sm flex items-center gap-2">
                                 <Award className="w-4 h-4 text-amber-500" /> Magnet Designated
                             </label>
-                            <Switch checked={magnetOnly} onCheckedChange={onSetMagnetOnly} />
+                            <Switch checked={magnetOnly} onCheckedChange={setMagnetOnly} />
                         </div>
                         <div className="flex items-center justify-between">
                             <label className="text-sm flex items-center gap-2">
                                 <Users className="w-4 h-4 text-blue-500" /> Union Hospital
                             </label>
-                            <Switch checked={unionOnly} onCheckedChange={onSetUnionOnly} />
+                            <Switch checked={unionOnly} onCheckedChange={setUnionOnly} />
                         </div>
                         <div className="flex items-center justify-between">
                             <label className="text-sm flex items-center gap-2">
                                 <GraduationCap className="w-4 h-4 text-green-500" /> New Grad Friendly
                             </label>
-                            <Switch checked={newGradOnly} onCheckedChange={onSetNewGradOnly} />
+                            <Switch checked={newGradOnly} onCheckedChange={setNewGradOnly} />
                         </div>
                     </div>
                 </div>
 
-                {/* Shift Types */}
                 <div>
                     <Label className="text-sm font-semibold flex items-center gap-2 mb-3">
                         <Sun className="w-4 h-4" /> Shift Types
@@ -115,7 +100,7 @@ export function MobileFilterOverlay({
                                 <Checkbox
                                     id={`mobile-${shift.id}`}
                                     checked={selectedShifts.includes(shift.id)}
-                                    onCheckedChange={() => onToggleShift(shift.id)}
+                                    onCheckedChange={() => toggleShift(shift.id)}
                                 />
                                 <label htmlFor={`mobile-${shift.id}`} className="text-sm flex items-center gap-2 cursor-pointer">
                                     <shift.icon className="w-4 h-4" /> {shift.label}
@@ -125,7 +110,6 @@ export function MobileFilterOverlay({
                     </div>
                 </div>
 
-                {/* Pay Range */}
                 <div>
                     <Label className="text-sm font-semibold flex items-center gap-2 mb-3">
                         <DollarSign className="w-4 h-4" /> Minimum Hourly Pay
@@ -133,7 +117,7 @@ export function MobileFilterOverlay({
                     <div className="px-1 pt-2">
                         <Slider
                             value={[minPay]}
-                            onValueChange={(v) => onSetMinPay(v[0])}
+                            onValueChange={(v) => setMinPay(v[0])}
                             max={100}
                             step={5}
                             className="w-full [&_[role=slider]]:h-6 [&_[role=slider]]:w-6"
@@ -147,9 +131,8 @@ export function MobileFilterOverlay({
                 </div>
             </div>
 
-            {/* Sticky footer */}
             <div className="border-t px-4 py-3 flex items-center gap-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}>
-                <button onClick={onClearAll} className="text-sm text-muted-foreground font-medium px-3">Reset</button>
+                <button onClick={clearAll} className="text-sm text-muted-foreground font-medium px-3">Reset</button>
                 <Button className="flex-1" onClick={onClose}>
                     Show {resultCount} {resultCount === 1 ? 'Result' : 'Results'}
                 </Button>

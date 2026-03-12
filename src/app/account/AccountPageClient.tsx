@@ -1,9 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { User } from '@supabase/supabase-js';
 import { Icons } from '@/components/ui/icons';
 import { Settings } from 'lucide-react';
 import Link from 'next/link';
@@ -11,27 +9,21 @@ import { ProfileSection } from '@/components/account/ProfileSection';
 import { PasswordSection } from '@/components/account/PasswordSection';
 import { NotificationsSection } from '@/components/account/NotificationsSection';
 import { DangerZoneSection } from '@/components/account/DangerZoneSection';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 export default function AccountPageClient() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const { user, isLoading, fetchUser } = useAuthStore();
   const router = useRouter();
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-      setUser(user);
-      setLoading(false);
-    };
-    getUser();
-  }, [supabase.auth, router]);
+  useEffect(() => { fetchUser(); }, [fetchUser]);
 
-  if (loading) {
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/login');
+    }
+  }, [isLoading, user, router]);
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Icons.spinner className="h-8 w-8 animate-spin text-teal-600" />
@@ -46,7 +38,6 @@ export default function AccountPageClient() {
   return (
     <div className="min-h-screen bg-slate-50 py-8">
       <div className="container max-w-3xl mx-auto px-4">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
             <Link href="/dashboard" className="hover:text-foreground">Dashboard</Link>

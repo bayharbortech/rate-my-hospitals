@@ -21,6 +21,7 @@ import { formatDate, getTimeAgo } from '@/lib/constants';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 interface Answer {
   id: string;
@@ -51,13 +52,13 @@ interface QASectionProps {
 export function QASection({ employerId, employerName }: QASectionProps) {
   const supabase = createClient();
   const router = useRouter();
+  const { user, fetchUser } = useAuthStore();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
   const [showAskForm, setShowAskForm] = useState(false);
   const [newQuestion, setNewQuestion] = useState('');
   const [filter, setFilter] = useState<'all' | 'answered' | 'unanswered'>('all');
-  const [user, setUser] = useState<{ id: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [answerTexts, setAnswerTexts] = useState<Record<string, string>>({});
   const [submittingAnswer, setSubmittingAnswer] = useState<string | null>(null);
@@ -65,14 +66,7 @@ export function QASection({ employerId, employerName }: QASectionProps) {
   const [votedAnswers, setVotedAnswers] = useState<Set<string>>(new Set());
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Fetch user
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    getUser();
-  }, [supabase.auth]);
+  useEffect(() => { fetchUser(); }, [fetchUser]);
 
   // Fetch questions and answers
   const fetchQuestions = useCallback(async () => {

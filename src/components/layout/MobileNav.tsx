@@ -11,7 +11,7 @@ import {
     PenSquare, BookOpen, LayoutDashboard, ShieldCheck, X, Download,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
-import { usePWAInstall } from '@/hooks/usePWAInstall';
+import { usePWAStore } from '@/stores/usePWAStore';
 
 interface MobileNavProps {
     isLoggedIn: boolean;
@@ -34,7 +34,7 @@ const ACTION_LINKS = [
 export function MobileNav({ isLoggedIn, isAdmin, pendingCount }: MobileNavProps) {
     const [open, setOpen] = useState(false);
     const pathname = usePathname();
-    const { canInstall, promptInstall } = usePWAInstall();
+    const { canInstall, promptInstall } = usePWAStore();
 
     const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 

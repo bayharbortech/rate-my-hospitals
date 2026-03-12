@@ -2,10 +2,16 @@
 
 import { Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { usePWAInstall } from '@/hooks/usePWAInstall';
+import { useEffect } from 'react';
+import { usePWAStore } from '@/stores/usePWAStore';
 
 export function InstallBanner() {
-    const { canInstall, promptInstall, isDismissed, dismiss } = usePWAInstall();
+    const { canInstall, promptInstall, isDismissed, dismiss, initialize } = usePWAStore();
+
+    useEffect(() => {
+        const cleanup = initialize();
+        return cleanup;
+    }, [initialize]);
 
     if (!canInstall || isDismissed) return null;
 

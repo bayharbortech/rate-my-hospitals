@@ -18,6 +18,7 @@ import { UserReviewCard } from '@/components/dashboard/UserReviewCard';
 import { Top40Dashboard } from '@/components/dashboard/Top40Dashboard';
 import { createClient } from '@/lib/supabase/client';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
+import { useSavedStore } from '@/stores/useSavedStore';
 
 interface ReviewWithEmployerName extends Review {
     employer: { name: string };
@@ -30,7 +31,6 @@ interface MobileDashboardProps {
     userProfile: { email: string; display_name: string | null };
 }
 
-const SAVED_REVIEWS_KEY = 'rate-my-hospitals-saved-reviews';
 const SAVED_HOSPITALS_KEY = 'rate-my-hospitals-saved-hospitals';
 
 interface SavedHospital {
@@ -61,7 +61,7 @@ const TABS: { id: TabId; label: string; icon: typeof Trophy }[] = [
 export default function MobileDashboard({ employers, reviews, userReviews, userProfile }: MobileDashboardProps) {
     const [activeTab, setActiveTab] = useState<TabId>('reviews');
     const [savedHospitals, setSavedHospitals] = useState<SavedHospital[]>([]);
-    const [savedReviewIds, setSavedReviewIds] = useState<string[]>([]);
+    const { savedReviewIds, toggleReview } = useSavedStore();
     const [recentQuestions, setRecentQuestions] = useState<QuestionFromDB[]>([]);
     const supabase = createClient();
 
@@ -78,7 +78,6 @@ export default function MobileDashboard({ employers, reviews, userReviews, userP
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            setSavedReviewIds(JSON.parse(localStorage.getItem(SAVED_REVIEWS_KEY) || '[]'));
             setSavedHospitals(JSON.parse(localStorage.getItem(SAVED_HOSPITALS_KEY) || '[]'));
         }
     }, []);
@@ -141,9 +140,7 @@ export default function MobileDashboard({ employers, reviews, userReviews, userP
     };
 
     const removeReviewFromSaved = (reviewId: string) => {
-        const updated = savedReviewIds.filter(id => id !== reviewId);
-        setSavedReviewIds(updated);
-        localStorage.setItem(SAVED_REVIEWS_KEY, JSON.stringify(updated));
+        toggleReview(reviewId);
     };
 
     const getStatusBadge = (status: string) => {
