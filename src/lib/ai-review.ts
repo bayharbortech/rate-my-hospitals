@@ -89,6 +89,7 @@ export async function runAIReview(
     reviewId: string,
     supabase: SupabaseClient
 ): Promise<AIReviewResult | null> {
+    // Set ANTHROPIC_API_KEY in .env.local (local) or Vercel Environment Variables (production)
     const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
     if (!apiKey) {
         throw new Error('ANTHROPIC_API_KEY is not configured. Add it to Vercel environment variables and redeploy.');
