@@ -12,28 +12,36 @@ const serverEnvSchema = z.object({
 type ClientEnv = z.infer<typeof clientEnvSchema>;
 
 let _clientEnv: ClientEnv | null = null;
+let _envWarned = false;
 
 /**
  * Validated public environment variables.
- * Lazily validated on first access to avoid crashing during static builds.
+ * Logs a warning and returns raw values if validation fails,
+ * rather than crashing the server-side render.
  */
 export function getClientEnv(): ClientEnv {
     if (_clientEnv) return _clientEnv;
 
-    const result = clientEnvSchema.safeParse({
-        NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    });
+    const raw = {
+        NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+    };
+
+    const result = clientEnvSchema.safeParse(raw);
 
     if (!result.success) {
-        const formatted = result.error.issues
-            .map(i => `  - ${i.path.join('.')}: ${i.message}`)
-            .join('\n');
-        throw new Error(
-            `\n❌ Missing or invalid environment variables:\n${formatted}\n\n` +
-            `Check your .env.local file or Vercel environment settings.\n` +
-            `See: https://supabase.com/dashboard/project/_/settings/api\n`
-        );
+        if (!_envWarned) {
+            _envWarned = true;
+            const formatted = result.error.issues
+                .map(i => `  - ${i.path.join('.')}: ${i.message}`)
+                .join('\n');
+            console.error(
+                `\n⚠️  Missing or invalid environment variables:\n${formatted}\n\n` +
+                `Check your .env.local file or Vercel environment settings.\n` +
+                `See: https://supabase.com/dashboard/project/_/settings/api\n`
+            );
+        }
+        return raw as ClientEnv;
     }
 
     _clientEnv = result.data;

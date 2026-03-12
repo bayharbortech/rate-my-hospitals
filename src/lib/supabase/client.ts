@@ -5,7 +5,7 @@ import { getClientEnv } from '@/lib/env'
 export function createClient() {
     const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = getClientEnv()
     return createBrowserClient(
-        NEXT_PUBLIC_SUPABASE_URL,
-        NEXT_PUBLIC_SUPABASE_ANON_KEY
+        NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+        NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder'
     )
 }
