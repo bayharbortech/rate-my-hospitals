@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import { BlogPostRow, BlogTopic } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -25,83 +26,66 @@ import { BlogTopicManager } from './BlogTopicManager';
 import { BlogPostGenerator } from './BlogPostGenerator';
 
 export function BlogManagement() {
-    const [posts, setPosts] = useState<BlogPostRow[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [view, setView] = useState<'list' | 'create' | 'edit' | 'generate'>('list');
     const [editingPost, setEditingPost] = useState<BlogPostRow | null>(null);
     const [generateTopic, setGenerateTopic] = useState<BlogTopic | null>(null);
-    const [deleting, setDeleting] = useState<number | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [seeding, setSeeding] = useState(false);
     const [seedMessage, setSeedMessage] = useState<string | null>(null);
 
-    const fetchPosts = async () => {
-        setLoading(true);
-        try {
+    const { data: posts = [], isLoading, error: fetchError } = useQuery<BlogPostRow[]>({
+        queryKey: ['blog-posts'],
+        queryFn: async () => {
             const res = await fetch('/api/blog');
-            if (res.ok) {
-                const data = await res.json();
-                setPosts(data);
-            }
-        } catch {
-            setErrorMessage('Failed to fetch blog posts.');
-        } finally {
-            setLoading(false);
-        }
-    };
+            if (!res.ok) throw new Error('Failed to fetch blog posts');
+            return res.json();
+        },
+    });
 
-    useEffect(() => {
-        fetchPosts();
-    }, []);
+    const deleteMutation = useMutation({
+        mutationFn: async (id: number) => {
+            const supabase = createClient();
+            const { error } = await supabase.from('blog_posts').delete().eq('id', id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['blog-posts'] });
+        },
+    });
+
+    const seedMutation = useMutation({
+        mutationFn: async () => {
+            const res = await fetch('/api/blog/seed', { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to import posts');
+            return data;
+        },
+        onSuccess: (data) => {
+            setSeedMessage(data.message);
+            queryClient.invalidateQueries({ queryKey: ['blog-posts'] });
+        },
+    });
 
     const requestDelete = (id: number) => {
         setPendingDeleteId(id);
         setDeleteDialogOpen(true);
     };
 
-    const handleDelete = async () => {
+    const handleDelete = () => {
         if (!pendingDeleteId) return;
-        const id = pendingDeleteId;
         setDeleteDialogOpen(false);
-        setDeleting(id);
-        setErrorMessage(null);
-        try {
-            const supabase = createClient();
-            const { error } = await supabase.from('blog_posts').delete().eq('id', id);
-            if (error) throw error;
-            setPosts(prev => prev.filter(p => p.id !== id));
-        } catch {
-            setErrorMessage('Failed to delete post. Please try again.');
-        } finally {
-            setDeleting(null);
-            setPendingDeleteId(null);
-        }
+        deleteMutation.mutate(pendingDeleteId);
+        setPendingDeleteId(null);
     };
 
     const handleSaved = () => {
-        fetchPosts();
+        queryClient.invalidateQueries({ queryKey: ['blog-posts'] });
         setView('list');
         setEditingPost(null);
     };
 
-    const handleSeedPosts = async () => {
-        setSeeding(true);
-        setSeedMessage(null);
-        setErrorMessage(null);
-        try {
-            const res = await fetch('/api/blog/seed', { method: 'POST' });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to import posts');
-            setSeedMessage(data.message);
-            fetchPosts();
-        } catch (err) {
-            setErrorMessage(err instanceof Error ? err.message : 'Failed to import posts');
-        } finally {
-            setSeeding(false);
-        }
-    };
+    const errorMessage = fetchError?.message || deleteMutation.error?.message || seedMutation.error?.message || null;
 
     if (view === 'generate' && generateTopic) {
         return (
@@ -111,7 +95,7 @@ export function BlogManagement() {
                 onPublished={() => {
                     setView('list');
                     setGenerateTopic(null);
-                    fetchPosts();
+                    queryClient.invalidateQueries({ queryKey: ['blog-posts'] });
                 }}
             />
         );
@@ -151,11 +135,11 @@ export function BlogManagement() {
                     <Button
                         size="sm"
                         variant="outline"
-                        onClick={handleSeedPosts}
-                        disabled={seeding}
+                        onClick={() => seedMutation.mutate()}
+                        disabled={seedMutation.isPending}
                     >
                         <Download className="h-4 w-4 mr-2" />
-                        {seeding ? 'Importing...' : 'Import Static Posts'}
+                        {seedMutation.isPending ? 'Importing...' : 'Import Static Posts'}
                     </Button>
                     <Button size="sm" onClick={() => setView('create')}>
                         <Plus className="h-4 w-4 mr-2" /> New Blog Post
@@ -168,7 +152,6 @@ export function BlogManagement() {
             )}
             <ErrorBanner message={errorMessage} />
 
-            {/* Topic Manager for AI generation */}
             <BlogTopicManager
                 onGenerate={(topic) => {
                     setGenerateTopic(topic);
@@ -178,7 +161,7 @@ export function BlogManagement() {
 
             <Separator />
 
-            {loading ? (
+            {isLoading ? (
                 <div className="text-center py-12 text-muted-foreground">Loading blog posts...</div>
             ) : posts.length === 0 ? (
                 <Card>
@@ -189,9 +172,9 @@ export function BlogManagement() {
                             Import the existing static blog posts into the database, or create a new one.
                         </p>
                         <div className="flex gap-3">
-                            <Button variant="outline" onClick={handleSeedPosts} disabled={seeding}>
+                            <Button variant="outline" onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending}>
                                 <Download className="h-4 w-4 mr-2" />
-                                {seeding ? 'Importing...' : 'Import Static Posts'}
+                                {seedMutation.isPending ? 'Importing...' : 'Import Static Posts'}
                             </Button>
                             <Button onClick={() => setView('create')}>
                                 <Plus className="h-4 w-4 mr-2" /> Create New Post
@@ -225,32 +208,19 @@ export function BlogManagement() {
                                         </p>
                                     </div>
                                     <div className="flex gap-1 shrink-0">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8"
-                                            title="View on blog"
-                                            onClick={() => window.open(`/blog/${post.id}`, '_blank')}
-                                        >
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" title="View on blog"
+                                            onClick={() => window.open(`/blog/${post.id}`, '_blank')}>
                                             <Eye className="h-4 w-4" />
                                         </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8"
-                                            title="Edit"
-                                            onClick={() => { setEditingPost(post); setView('edit'); }}
-                                        >
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Edit"
+                                            onClick={() => { setEditingPost(post); setView('edit'); }}>
                                             <Pencil className="h-4 w-4" />
                                         </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
+                                        <Button variant="ghost" size="icon"
                                             className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
                                             title="Delete"
                                             onClick={() => requestDelete(post.id)}
-                                            disabled={deleting === post.id}
-                                        >
+                                            disabled={deleteMutation.isPending}>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -274,10 +244,7 @@ export function BlogManagement() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleDelete}
-                            className="bg-red-600 hover:bg-red-700"
-                        >
+                        <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
                             Delete
                         </AlertDialogAction>
                     </AlertDialogFooter>

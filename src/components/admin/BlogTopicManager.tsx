@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BlogTopic } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,43 +27,60 @@ interface BlogTopicManagerProps {
 }
 
 export function BlogTopicManager({ onGenerate }: BlogTopicManagerProps) {
-    const [topics, setTopics] = useState<BlogTopic[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [selectedId, setSelectedId] = useState<number | null>(null);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    // Add/edit form state
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [formTitle, setFormTitle] = useState('');
     const [formDescription, setFormDescription] = useState('');
-    const [saving, setSaving] = useState(false);
 
-    // Delete state
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
-    const [deleting, setDeleting] = useState(false);
 
-    const fetchTopics = async () => {
-        setLoading(true);
-        try {
+    const { data: topics = [], isLoading, error: fetchError } = useQuery<BlogTopic[]>({
+        queryKey: ['blog-topics'],
+        queryFn: async () => {
             const res = await fetch('/api/blog/topics');
-            if (res.ok) {
-                const data = await res.json();
-                setTopics(data);
-            } else {
-                setErrorMessage('Failed to load topics.');
-            }
-        } catch {
-            setErrorMessage('Failed to load topics.');
-        } finally {
-            setLoading(false);
-        }
-    };
+            if (!res.ok) throw new Error('Failed to load topics');
+            return res.json();
+        },
+    });
 
-    useEffect(() => {
-        fetchTopics();
-    }, []);
+    const saveMutation = useMutation({
+        mutationFn: async ({ id, title, description }: { id?: number; title: string; description?: string }) => {
+            const isEditing = id !== undefined;
+            const res = await fetch('/api/blog/topics', {
+                method: isEditing ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...(isEditing && { id }),
+                    title: title.trim(),
+                    description: description?.trim() || undefined,
+                }),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to save topic');
+            }
+        },
+        onSuccess: () => {
+            resetForm();
+            queryClient.invalidateQueries({ queryKey: ['blog-topics'] });
+        },
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: async (id: number) => {
+            const res = await fetch(`/api/blog/topics?id=${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Failed to delete topic');
+            return id;
+        },
+        onSuccess: (deletedId) => {
+            if (selectedId === deletedId) setSelectedId(null);
+            queryClient.invalidateQueries({ queryKey: ['blog-topics'] });
+        },
+    });
 
     const resetForm = () => {
         setShowForm(false);
@@ -83,35 +101,13 @@ export function BlogTopicManager({ onGenerate }: BlogTopicManagerProps) {
         setShowForm(true);
     };
 
-    const handleSave = async () => {
+    const handleSave = () => {
         if (!formTitle.trim()) return;
-        setSaving(true);
-        setErrorMessage(null);
-
-        try {
-            const isEditing = editingId !== null;
-            const res = await fetch('/api/blog/topics', {
-                method: isEditing ? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...(isEditing && { id: editingId }),
-                    title: formTitle.trim(),
-                    description: formDescription.trim() || undefined,
-                }),
-            });
-
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || 'Failed to save topic');
-            }
-
-            resetForm();
-            fetchTopics();
-        } catch (err) {
-            setErrorMessage(err instanceof Error ? err.message : 'Failed to save topic');
-        } finally {
-            setSaving(false);
-        }
+        saveMutation.mutate({
+            id: editingId ?? undefined,
+            title: formTitle,
+            description: formDescription,
+        });
     };
 
     const requestDelete = (id: number) => {
@@ -119,30 +115,15 @@ export function BlogTopicManager({ onGenerate }: BlogTopicManagerProps) {
         setDeleteDialogOpen(true);
     };
 
-    const handleDelete = async () => {
+    const handleDelete = () => {
         if (!pendingDeleteId) return;
         setDeleteDialogOpen(false);
-        setDeleting(true);
-        setErrorMessage(null);
-
-        try {
-            const res = await fetch(`/api/blog/topics?id=${pendingDeleteId}`, {
-                method: 'DELETE',
-            });
-            if (!res.ok) {
-                throw new Error('Failed to delete topic');
-            }
-            if (selectedId === pendingDeleteId) setSelectedId(null);
-            setTopics(prev => prev.filter(t => t.id !== pendingDeleteId));
-        } catch {
-            setErrorMessage('Failed to delete topic.');
-        } finally {
-            setDeleting(false);
-            setPendingDeleteId(null);
-        }
+        deleteMutation.mutate(pendingDeleteId);
+        setPendingDeleteId(null);
     };
 
     const selectedTopic = topics.find(t => t.id === selectedId);
+    const errorMessage = fetchError?.message || saveMutation.error?.message || deleteMutation.error?.message || null;
 
     return (
         <div className="space-y-4">
@@ -169,7 +150,6 @@ export function BlogTopicManager({ onGenerate }: BlogTopicManagerProps) {
 
             <ErrorBanner message={errorMessage} />
 
-            {/* Add / Edit form */}
             {showForm && (
                 <Card className="border-teal-200 bg-teal-50/30">
                     <CardContent className="pt-4 space-y-3">
@@ -193,16 +173,16 @@ export function BlogTopicManager({ onGenerate }: BlogTopicManagerProps) {
                             <Button
                                 size="sm"
                                 onClick={handleSave}
-                                disabled={!formTitle.trim() || saving}
+                                disabled={!formTitle.trim() || saveMutation.isPending}
                             >
-                                {saving ? (
+                                {saveMutation.isPending ? (
                                     <Loader2 className="h-4 w-4 animate-spin mr-1" />
                                 ) : (
                                     <Check className="h-4 w-4 mr-1" />
                                 )}
                                 {editingId ? 'Update' : 'Save'}
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={resetForm} disabled={saving}>
+                            <Button size="sm" variant="ghost" onClick={resetForm} disabled={saveMutation.isPending}>
                                 <X className="h-4 w-4 mr-1" /> Cancel
                             </Button>
                         </div>
@@ -210,8 +190,7 @@ export function BlogTopicManager({ onGenerate }: BlogTopicManagerProps) {
                 </Card>
             )}
 
-            {/* Topic list */}
-            {loading ? (
+            {isLoading ? (
                 <div className="text-center py-6 text-muted-foreground text-sm">Loading topics...</div>
             ) : topics.length === 0 && !showForm ? (
                 <div className="text-center py-6 text-muted-foreground text-sm">
@@ -238,23 +217,15 @@ export function BlogTopicManager({ onGenerate }: BlogTopicManagerProps) {
                                 )}
                             </div>
                             <div className="flex gap-1 shrink-0">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    title="Edit"
-                                    onClick={e => { e.stopPropagation(); openEditForm(topic); }}
-                                >
+                                <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit"
+                                    onClick={e => { e.stopPropagation(); openEditForm(topic); }}>
                                     <Pencil className="h-3.5 w-3.5" />
                                 </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
+                                <Button variant="ghost" size="icon"
                                     className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50"
                                     title="Delete"
                                     onClick={e => { e.stopPropagation(); requestDelete(topic.id); }}
-                                    disabled={deleting}
-                                >
+                                    disabled={deleteMutation.isPending}>
                                     <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                             </div>

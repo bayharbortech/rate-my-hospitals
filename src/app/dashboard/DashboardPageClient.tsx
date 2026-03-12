@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { formatDate as formatDateUtil, getTimeAgo as getTimeAgoUtil } from '@/lib/constants';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -79,10 +80,8 @@ export function DashboardPageClient({ employers, reviews, userReviews, userProfi
   const { savedReviewIds, toggleReview } = useSavedStore();
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
-  const [recentQuestions, setRecentQuestions] = useState<QuestionFromDB[]>([]);
   const supabase = createClient();
 
-  // Load saved hospitals from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedHospitalsData = JSON.parse(localStorage.getItem(SAVED_HOSPITALS_KEY) || '[]');
@@ -90,28 +89,24 @@ export function DashboardPageClient({ employers, reviews, userReviews, userProfi
     }
   }, []);
 
-  // Save hospitals to localStorage when they change
   useEffect(() => {
     if (typeof window !== 'undefined' && savedHospitals.length > 0) {
       localStorage.setItem(SAVED_HOSPITALS_KEY, JSON.stringify(savedHospitals));
     }
   }, [savedHospitals]);
 
-  // Fetch recent questions from Supabase
-  useEffect(() => {
-    const fetchRecentQuestions = async () => {
+  const { data: recentQuestions = [] } = useQuery<QuestionFromDB[]>({
+    queryKey: ['recent-questions'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('questions')
         .select('id, employer_id, question_text, created_at')
         .order('created_at', { ascending: false })
         .limit(5);
-
-      if (!error && data) {
-        setRecentQuestions(data);
-      }
-    };
-    fetchRecentQuestions();
-  }, [supabase]);
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   // Create employer map for quick lookups
   const employerMap = useMemo(() => {

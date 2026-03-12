@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { formatDate as formatDateUtil, getTimeAgo as getTimeAgoUtil } from '@/lib/constants';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,7 +63,6 @@ export default function MobileDashboard({ employers, reviews, userReviews, userP
     const [activeTab, setActiveTab] = useState<TabId>('reviews');
     const [savedHospitals, setSavedHospitals] = useState<SavedHospital[]>([]);
     const { savedReviewIds, toggleReview } = useSavedStore();
-    const [recentQuestions, setRecentQuestions] = useState<QuestionFromDB[]>([]);
     const supabase = createClient();
 
     const tabIds = TABS.map(t => t.id);
@@ -88,17 +88,18 @@ export default function MobileDashboard({ employers, reviews, userReviews, userP
         }
     }, [savedHospitals]);
 
-    useEffect(() => {
-        const fetchQuestions = async () => {
-            const { data } = await supabase
+    const { data: recentQuestions = [] } = useQuery<QuestionFromDB[]>({
+        queryKey: ['recent-questions'],
+        queryFn: async () => {
+            const { data, error } = await supabase
                 .from('questions')
                 .select('id, employer_id, question_text, created_at')
                 .order('created_at', { ascending: false })
                 .limit(5);
-            if (data) setRecentQuestions(data);
-        };
-        fetchQuestions();
-    }, [supabase]);
+            if (error) throw error;
+            return data || [];
+        },
+    });
 
     const employerMap = useMemo(() => {
         const map = new Map<string, Employer>();

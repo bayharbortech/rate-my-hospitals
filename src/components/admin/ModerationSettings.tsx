@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -10,50 +10,52 @@ interface ModerationSettingsProps {
     onError: (message: string) => void;
 }
 
+interface SettingsData {
+    auto_ai_review_on_resubmit?: boolean;
+    auto_return_non_approved?: boolean;
+}
+
 export function ModerationSettings({ onError }: ModerationSettingsProps) {
-    const [autoAiResubmit, setAutoAiResubmit] = useState(false);
-    const [autoReturnNonApproved, setAutoReturnNonApproved] = useState(false);
-    const [settingsLoading, setSettingsLoading] = useState(true);
+    const queryClient = useQueryClient();
 
-    useEffect(() => {
-        async function loadSettings() {
-            try {
-                const res = await fetch('/api/settings');
-                if (res.ok) {
-                    const data = await res.json();
-                    setAutoAiResubmit(data.auto_ai_review_on_resubmit === true);
-                    setAutoReturnNonApproved(data.auto_return_non_approved === true);
-                }
-            } catch {
-                // silently fall back to off
-            } finally {
-                setSettingsLoading(false);
-            }
-        }
-        loadSettings();
-    }, []);
+    const { data: settings, isLoading } = useQuery<SettingsData>({
+        queryKey: ['moderation-settings'],
+        queryFn: async () => {
+            const res = await fetch('/api/settings');
+            if (!res.ok) return {};
+            return res.json();
+        },
+    });
 
-    const handleToggle = async (
-        key: string,
-        checked: boolean,
-        setter: (val: boolean) => void
-    ) => {
-        setter(checked);
-        try {
+    const toggleMutation = useMutation({
+        mutationFn: async ({ key, value }: { key: string; value: boolean }) => {
             const res = await fetch('/api/settings', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ key, value: checked }),
+                body: JSON.stringify({ key, value }),
             });
-            if (!res.ok) {
-                setter(!checked);
-                onError('Failed to save setting');
+            if (!res.ok) throw new Error('Failed to save setting');
+            return { key, value };
+        },
+        onMutate: async ({ key, value }) => {
+            await queryClient.cancelQueries({ queryKey: ['moderation-settings'] });
+            const previous = queryClient.getQueryData<SettingsData>(['moderation-settings']);
+            queryClient.setQueryData<SettingsData>(['moderation-settings'], old => ({
+                ...old,
+                [key]: value,
+            }));
+            return { previous };
+        },
+        onError: (_err, _vars, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(['moderation-settings'], context.previous);
             }
-        } catch {
-            setter(!checked);
             onError('Failed to save setting');
-        }
-    };
+        },
+    });
+
+    const autoAiResubmit = settings?.auto_ai_review_on_resubmit === true;
+    const autoReturnNonApproved = settings?.auto_return_non_approved === true;
 
     return (
         <div className="space-y-3 p-4 bg-slate-50 rounded-lg border">
@@ -74,8 +76,8 @@ export function ModerationSettings({ onError }: ModerationSettingsProps) {
                 <Switch
                     id="auto-ai-toggle"
                     checked={autoAiResubmit}
-                    onCheckedChange={(checked) => handleToggle('auto_ai_review_on_resubmit', checked, setAutoAiResubmit)}
-                    disabled={settingsLoading}
+                    onCheckedChange={(checked) => toggleMutation.mutate({ key: 'auto_ai_review_on_resubmit', value: checked })}
+                    disabled={isLoading}
                 />
             </div>
 
@@ -93,8 +95,8 @@ export function ModerationSettings({ onError }: ModerationSettingsProps) {
                 <Switch
                     id="auto-return-toggle"
                     checked={autoReturnNonApproved}
-                    onCheckedChange={(checked) => handleToggle('auto_return_non_approved', checked, setAutoReturnNonApproved)}
-                    disabled={settingsLoading}
+                    onCheckedChange={(checked) => toggleMutation.mutate({ key: 'auto_return_non_approved', value: checked })}
+                    disabled={isLoading}
                 />
             </div>
         </div>

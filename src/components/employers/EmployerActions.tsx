@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { Bell, BellOff, Share2, Check, Link as LinkIcon } from 'lucide-react';
@@ -19,55 +20,37 @@ interface EmployerActionsProps {
 }
 
 export function EmployerActions({ employerId, employerName }: EmployerActionsProps) {
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingFollow, setIsCheckingFollow] = useState(true);
   const [showCopied, setShowCopied] = useState(false);
   const { user, fetchUser } = useAuthStore();
   const router = useRouter();
   const supabase = createClient();
+  const queryClient = useQueryClient();
 
-  useEffect(() => { fetchUser(); }, [fetchUser]);
+  const { data: isFollowing = false, isLoading: isCheckingFollow } = useQuery({
+    queryKey: ['follow-status', employerId, user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase
+        .from('saved_hospitals')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('employer_id', employerId)
+        .single();
+      return !!data;
+    },
+    enabled: !!user,
+  });
 
-  useEffect(() => {
-    const checkFollowStatus = async () => {
-      if (user) {
-        const { data } = await supabase
-          .from('saved_hospitals')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('employer_id', employerId)
-          .single();
-
-        setIsFollowing(!!data);
-      }
-      setIsCheckingFollow(false);
-    };
-
-    checkFollowStatus();
-  }, [employerId, supabase, user]);
-
-  const handleFollow = async () => {
-    // If not logged in, redirect to login
-    if (!user) {
-      router.push(`/login?redirect=/employers/${employerId}`);
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
+  const followMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('Not authenticated');
       if (isFollowing) {
-        // Unfollow - delete from saved_hospitals
         await supabase
           .from('saved_hospitals')
           .delete()
           .eq('user_id', user.id)
           .eq('employer_id', employerId);
-
-        setIsFollowing(false);
       } else {
-        // Follow - insert into saved_hospitals
         await supabase
           .from('saved_hospitals')
           .insert({
@@ -75,14 +58,31 @@ export function EmployerActions({ employerId, employerName }: EmployerActionsPro
             employer_id: employerId,
             notify_new_reviews: true,
           });
-
-        setIsFollowing(true);
       }
-    } catch {
-      // Follow toggle failed silently
-    }
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['follow-status', employerId, user?.id] });
+      const previous = queryClient.getQueryData(['follow-status', employerId, user?.id]);
+      queryClient.setQueryData(['follow-status', employerId, user?.id], !isFollowing);
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      queryClient.setQueryData(['follow-status', employerId, user?.id], context?.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['follow-status', employerId, user?.id] });
+    },
+  });
 
-    setIsLoading(false);
+  // Initialize auth
+  useState(() => { fetchUser(); });
+
+  const handleFollow = () => {
+    if (!user) {
+      router.push(`/login?redirect=/employers/${employerId}`);
+      return;
+    }
+    followMutation.mutate();
   };
 
   const handleShare = async (method: 'native' | 'copy' | 'twitter' | 'facebook' | 'email') => {
@@ -96,7 +96,6 @@ export function EmployerActions({ employerId, employerName }: EmployerActionsPro
           try {
             await navigator.share({ title, text, url });
           } catch (error) {
-            // User cancelled or share failed, fall back to copy
             if ((error as Error).name !== 'AbortError') {
               copyToClipboard(url);
             }
@@ -105,27 +104,21 @@ export function EmployerActions({ employerId, employerName }: EmployerActionsPro
           copyToClipboard(url);
         }
         break;
-
       case 'copy':
         copyToClipboard(url);
         break;
-
       case 'twitter':
         window.open(
           `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
-          '_blank',
-          'width=550,height=420'
+          '_blank', 'width=550,height=420'
         );
         break;
-
       case 'facebook':
         window.open(
           `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-          '_blank',
-          'width=550,height=420'
+          '_blank', 'width=550,height=420'
         );
         break;
-
       case 'email':
         window.location.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(text + '\n\n' + url)}`;
         break;
@@ -138,11 +131,10 @@ export function EmployerActions({ employerId, employerName }: EmployerActionsPro
       setShowCopied(true);
       setTimeout(() => setShowCopied(false), 2000);
     } catch {
-      // Clipboard write not supported or failed
+      // Clipboard write not supported
     }
   };
 
-  // Check if native share is available (typically mobile)
   const hasNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
 
   return (
@@ -151,49 +143,31 @@ export function EmployerActions({ employerId, employerName }: EmployerActionsPro
         variant={isFollowing ? 'default' : 'outline'}
         className={`flex-1 ${isFollowing ? 'bg-teal-600 hover:bg-teal-700' : ''}`}
         onClick={handleFollow}
-        disabled={isLoading || isCheckingFollow}
+        disabled={followMutation.isPending || isCheckingFollow}
       >
         {isFollowing ? (
-          <>
-            <BellOff className="h-4 w-4 mr-2" /> Following
-          </>
+          <><BellOff className="h-4 w-4 mr-2" /> Following</>
         ) : (
-          <>
-            <Bell className="h-4 w-4 mr-2" /> Follow
-          </>
+          <><Bell className="h-4 w-4 mr-2" /> Follow</>
         )}
       </Button>
 
       {hasNativeShare ? (
-        // On mobile, use native share directly
-        <Button
-          variant="outline"
-          className="flex-1"
-          onClick={() => handleShare('native')}
-        >
+        <Button variant="outline" className="flex-1" onClick={() => handleShare('native')}>
           {showCopied ? (
-            <>
-              <Check className="h-4 w-4 mr-2" /> Copied!
-            </>
+            <><Check className="h-4 w-4 mr-2" /> Copied!</>
           ) : (
-            <>
-              <Share2 className="h-4 w-4 mr-2" /> Share
-            </>
+            <><Share2 className="h-4 w-4 mr-2" /> Share</>
           )}
         </Button>
       ) : (
-        // On desktop, show dropdown with options
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="flex-1">
               {showCopied ? (
-                <>
-                  <Check className="h-4 w-4 mr-2" /> Copied!
-                </>
+                <><Check className="h-4 w-4 mr-2" /> Copied!</>
               ) : (
-                <>
-                  <Share2 className="h-4 w-4 mr-2" /> Share
-                </>
+                <><Share2 className="h-4 w-4 mr-2" /> Share</>
               )}
             </Button>
           </DropdownMenuTrigger>

@@ -9,6 +9,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { ServiceWorkerRegistration } from "@/components/layout/ServiceWorkerRegistration";
 import { InstallBanner } from "@/components/layout/InstallBanner";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -39,17 +40,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ServiceWorkerRegistration />
-        <div className="flex min-h-screen flex-col">
-          <HeaderWrapper>
-            <Header />
-          </HeaderWrapper>
-          <InstallBanner />
-          <main className="flex-1 pb-16 md:pb-0">{children}</main>
-          <Footer />
-          <BottomNav />
-          <ScrollToTop />
-        </div>
+        <QueryProvider>
+          <ServiceWorkerRegistration />
+          <div className="flex min-h-screen flex-col">
+            <HeaderWrapper>
+              <Header />
+            </HeaderWrapper>
+            <InstallBanner />
+            <main className="flex-1 pb-16 md:pb-0">{children}</main>
+            <Footer />
+            <BottomNav />
+            <ScrollToTop />
+          </div>
+        </QueryProvider>
       </body>
     </html>
   );
