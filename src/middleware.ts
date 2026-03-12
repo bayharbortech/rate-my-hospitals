@@ -1,6 +1,7 @@
 import { type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
+// Refreshes the Supabase auth session on every request
 export async function middleware(request: NextRequest) {
     return await updateSession(request)
 }
