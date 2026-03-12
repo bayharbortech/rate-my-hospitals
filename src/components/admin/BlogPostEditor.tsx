@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { categoryColors } from '@/lib/blog-data';
@@ -15,6 +16,7 @@ import { BLOG_CATEGORIES, DEFAULT_BLOG_IMAGE, DEFAULT_READ_TIME, BLOG_AUTHOR, BL
 import { CalendarDays, Clock, Eye, Pencil, Save, Send, ArrowLeft } from 'lucide-react';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import Image from 'next/image';
+import { blogPostSchema, BlogPostFormData } from '@/lib/schemas';
 
 interface BlogPostEditorProps {
     existingPost?: BlogPostRow;
@@ -22,34 +24,44 @@ interface BlogPostEditorProps {
 }
 
 export function BlogPostEditor({ existingPost, onSaved }: BlogPostEditorProps) {
-    const [title, setTitle] = useState(existingPost?.title || '');
-    const [summary, setSummary] = useState(existingPost?.summary || '');
-    const [category, setCategory] = useState(existingPost?.category || '');
-    const [image, setImage] = useState(existingPost?.image || DEFAULT_BLOG_IMAGE);
-    const [content, setContent] = useState(existingPost?.content || '');
-    const [readTime, setReadTime] = useState(existingPost?.read_time || DEFAULT_READ_TIME);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [serverError, setServerError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState('edit');
 
     const today = formatDate(new Date());
 
+    const { register, handleSubmit, formState: { errors }, setValue, watch, trigger } = useForm<BlogPostFormData>({
+        resolver: zodResolver(blogPostSchema),
+        defaultValues: {
+            title: existingPost?.title || '',
+            summary: existingPost?.summary || '',
+            category: existingPost?.category || '',
+            image: existingPost?.image || DEFAULT_BLOG_IMAGE,
+            content: existingPost?.content || '',
+            readTime: existingPost?.read_time || DEFAULT_READ_TIME,
+        },
+    });
+
+    const title = watch('title');
+    const summary = watch('summary');
+    const category = watch('category');
+    const image = watch('image');
+    const content = watch('content');
+    const readTime = watch('readTime');
+
     const handleContentChange = (value: string) => {
-        setContent(value);
-        setReadTime(estimateReadTime(value));
+        setValue('content', value);
+        setValue('readTime', estimateReadTime(value));
     };
 
     const handleSave = async (status: 'draft' | 'published') => {
-        setLoading(true);
-        setError(null);
-        setSuccess(null);
+        const valid = await trigger();
+        if (!valid) return;
 
-        if (!title || !summary || !category || !content) {
-            setError('Please fill in all required fields (title, summary, category, content).');
-            setLoading(false);
-            return;
-        }
+        setLoading(true);
+        setServerError(null);
+        setSuccess(null);
 
         try {
             const method = existingPost ? 'PUT' : 'POST';
@@ -79,7 +91,7 @@ export function BlogPostEditor({ existingPost, onSaved }: BlogPostEditorProps) {
             setSuccess(status === 'published' ? 'Blog post published!' : 'Draft saved successfully.');
             onSaved?.();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'An error occurred');
+            setServerError(err instanceof Error ? err.message : 'An error occurred');
         } finally {
             setLoading(false);
         }
@@ -118,38 +130,38 @@ export function BlogPostEditor({ existingPost, onSaved }: BlogPostEditorProps) {
                     </div>
                 </div>
 
-                <ErrorBanner message={error} />
+                <ErrorBanner message={serverError} />
+                {Object.keys(errors).length > 0 && (
+                    <p className="text-sm text-red-600">Please fill in all required fields (title, summary, category, content).</p>
+                )}
                 {success && <p className="text-sm text-green-600">{success}</p>}
 
                 <TabsContent value="edit" className="space-y-6 mt-4">
-                    {/* Title */}
                     <div className="space-y-2">
                         <Label htmlFor="blog-title">Title *</Label>
                         <Input
                             id="blog-title"
                             placeholder="Enter a compelling blog post title..."
-                            value={title}
-                            onChange={e => setTitle(e.target.value)}
+                            {...register('title')}
                         />
+                        {errors.title && <p className="text-sm text-red-600">{errors.title.message}</p>}
                     </div>
 
-                    {/* Summary */}
                     <div className="space-y-2">
                         <Label htmlFor="blog-summary">Summary *</Label>
                         <Textarea
                             id="blog-summary"
                             placeholder="A brief summary that appears on the blog listing page..."
                             className="min-h-[80px]"
-                            value={summary}
-                            onChange={e => setSummary(e.target.value)}
+                            {...register('summary')}
                         />
+                        {errors.summary && <p className="text-sm text-red-600">{errors.summary.message}</p>}
                     </div>
 
-                    {/* Category + Image + Read Time */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label>Category *</Label>
-                            <Select onValueChange={setCategory} value={category}>
+                            <Select onValueChange={val => setValue('category', val)} value={category}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select category..." />
                                 </SelectTrigger>
@@ -159,14 +171,14 @@ export function BlogPostEditor({ existingPost, onSaved }: BlogPostEditorProps) {
                                     ))}
                                 </SelectContent>
                             </Select>
+                            {errors.category && <p className="text-sm text-red-600">{errors.category.message}</p>}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="blog-image">Image URL</Label>
                             <Input
                                 id="blog-image"
                                 placeholder="/images/blog/my-image.jpg"
-                                value={image}
-                                onChange={e => setImage(e.target.value)}
+                                {...register('image')}
                             />
                         </div>
                         <div className="space-y-2">
@@ -174,13 +186,11 @@ export function BlogPostEditor({ existingPost, onSaved }: BlogPostEditorProps) {
                             <Input
                                 id="blog-readtime"
                                 placeholder="5 min read"
-                                value={readTime}
-                                onChange={e => setReadTime(e.target.value)}
+                                {...register('readTime')}
                             />
                         </div>
                     </div>
 
-                    {/* Content */}
                     <div className="space-y-2">
                         <Label htmlFor="blog-content">Content (HTML) *</Label>
                         <p className="text-xs text-muted-foreground">
@@ -193,11 +203,11 @@ export function BlogPostEditor({ existingPost, onSaved }: BlogPostEditorProps) {
                             value={content}
                             onChange={e => handleContentChange(e.target.value)}
                         />
+                        {errors.content && <p className="text-sm text-red-600">{errors.content.message}</p>}
                     </div>
                 </TabsContent>
 
                 <TabsContent value="preview" className="mt-4">
-                    {/* Preview renders the post exactly as it would appear on the blog detail page */}
                     <div className="bg-slate-50 rounded-xl p-4">
                         <div className="mb-4">
                             <Button
@@ -214,7 +224,7 @@ export function BlogPostEditor({ existingPost, onSaved }: BlogPostEditorProps) {
                             {image && (
                                 <div className="relative h-[300px] w-full bg-slate-200">
                                     <Image
-                                        src={image}
+                                        src={image || DEFAULT_BLOG_IMAGE}
                                         alt={title || 'Blog post image'}
                                         fill
                                         className="object-cover"

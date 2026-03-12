@@ -1,16 +1,19 @@
 'use client'
 
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Icons } from '@/components/ui/icons'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ErrorBanner } from '@/components/ui/error-banner'
+import { loginSchema, signupSchema, LoginFormData, SignupFormData } from '@/lib/schemas'
 
 interface AuthFormProps {
     defaultView?: 'login' | 'signup'
@@ -18,25 +21,32 @@ interface AuthFormProps {
 }
 
 export function AuthForm({ defaultView = 'login', redirectTo }: AuthFormProps) {
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const [serverError, setServerError] = useState<string | null>(null)
     const router = useRouter()
     const supabase = createClient()
 
-    const handleEmailLogin = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const loginForm = useForm<LoginFormData>({
+        resolver: zodResolver(loginSchema),
+        defaultValues: { email: '', password: '' },
+    })
+
+    const signupForm = useForm<SignupFormData>({
+        resolver: zodResolver(signupSchema),
+        defaultValues: { email: '', password: '' },
+    })
+
+    const handleEmailLogin = async (data: LoginFormData) => {
         setLoading(true)
-        setError(null)
+        setServerError(null)
 
         const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
+            email: data.email,
+            password: data.password,
         })
 
         if (error) {
-            setError(error.message)
+            setServerError(error.message)
         } else {
             router.push(redirectTo || '/')
             router.refresh()
@@ -44,23 +54,22 @@ export function AuthForm({ defaultView = 'login', redirectTo }: AuthFormProps) {
         setLoading(false)
     }
 
-    const handleEmailSignUp = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const handleEmailSignUp = async (data: SignupFormData) => {
         setLoading(true)
-        setError(null)
+        setServerError(null)
 
         const { error } = await supabase.auth.signUp({
-            email,
-            password,
+            email: data.email,
+            password: data.password,
             options: {
                 emailRedirectTo: `${location.origin}/auth/callback`,
             },
         })
 
         if (error) {
-            setError(error.message)
+            setServerError(error.message)
         } else {
-            setError('Check your email for the confirmation link.')
+            setServerError('Check your email for the confirmation link.')
         }
         setLoading(false)
     }
@@ -79,7 +88,7 @@ export function AuthForm({ defaultView = 'login', redirectTo }: AuthFormProps) {
         })
 
         if (error) {
-            setError(error.message)
+            setServerError(error.message)
             setLoading(false)
         }
     }
@@ -118,25 +127,27 @@ export function AuthForm({ defaultView = 'login', redirectTo }: AuthFormProps) {
                             <TabsTrigger value="signup">Sign Up</TabsTrigger>
                         </TabsList>
                         <TabsContent value="login">
-                            <form onSubmit={handleEmailLogin}>
+                            <form onSubmit={loginForm.handleSubmit(handleEmailLogin)}>
                                 <div className="grid gap-2">
                                     <div className="grid gap-1">
-                                        <Label htmlFor="email">Email</Label>
+                                        <Label htmlFor="login-email">Email</Label>
                                         <Input
-                                            id="email"
+                                            id="login-email"
                                             placeholder="name@example.com"
                                             type="email"
                                             autoCapitalize="none"
                                             autoComplete="email"
                                             autoCorrect="off"
                                             disabled={loading}
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
+                                            {...loginForm.register('email')}
                                         />
+                                        {loginForm.formState.errors.email && (
+                                            <p className="text-sm text-red-600">{loginForm.formState.errors.email.message}</p>
+                                        )}
                                     </div>
                                     <div className="grid gap-1">
                                         <div className="flex items-center justify-between">
-                                            <Label htmlFor="password">Password</Label>
+                                            <Label htmlFor="login-password">Password</Label>
                                             <Link
                                                 href="/forgot-password"
                                                 className="text-sm text-primary hover:underline"
@@ -145,15 +156,17 @@ export function AuthForm({ defaultView = 'login', redirectTo }: AuthFormProps) {
                                             </Link>
                                         </div>
                                         <Input
-                                            id="password"
+                                            id="login-password"
                                             placeholder="Password"
                                             type="password"
                                             autoCapitalize="none"
                                             autoComplete="current-password"
                                             disabled={loading}
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
+                                            {...loginForm.register('password')}
                                         />
+                                        {loginForm.formState.errors.password && (
+                                            <p className="text-sm text-red-600">{loginForm.formState.errors.password.message}</p>
+                                        )}
                                     </div>
                                     <Button disabled={loading}>
                                         {loading && (
@@ -165,34 +178,38 @@ export function AuthForm({ defaultView = 'login', redirectTo }: AuthFormProps) {
                             </form>
                         </TabsContent>
                         <TabsContent value="signup">
-                            <form onSubmit={handleEmailSignUp}>
+                            <form onSubmit={signupForm.handleSubmit(handleEmailSignUp)}>
                                 <div className="grid gap-2">
                                     <div className="grid gap-1">
-                                        <Label htmlFor="email">Email</Label>
+                                        <Label htmlFor="signup-email">Email</Label>
                                         <Input
-                                            id="email"
+                                            id="signup-email"
                                             placeholder="name@example.com"
                                             type="email"
                                             autoCapitalize="none"
                                             autoComplete="email"
                                             autoCorrect="off"
                                             disabled={loading}
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
+                                            {...signupForm.register('email')}
                                         />
+                                        {signupForm.formState.errors.email && (
+                                            <p className="text-sm text-red-600">{signupForm.formState.errors.email.message}</p>
+                                        )}
                                     </div>
                                     <div className="grid gap-1">
-                                        <Label htmlFor="password">Password</Label>
+                                        <Label htmlFor="signup-password">Password</Label>
                                         <Input
-                                            id="password"
-                                            placeholder="Password"
+                                            id="signup-password"
+                                            placeholder="Password (min 8 characters)"
                                             type="password"
                                             autoCapitalize="none"
                                             autoComplete="new-password"
                                             disabled={loading}
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
+                                            {...signupForm.register('password')}
                                         />
+                                        {signupForm.formState.errors.password && (
+                                            <p className="text-sm text-red-600">{signupForm.formState.errors.password.message}</p>
+                                        )}
                                     </div>
                                     <Button disabled={loading}>
                                         {loading && (
@@ -204,7 +221,7 @@ export function AuthForm({ defaultView = 'login', redirectTo }: AuthFormProps) {
                             </form>
                         </TabsContent>
                     </Tabs>
-                    <ErrorBanner message={error} />
+                    <ErrorBanner message={serverError} />
                 </div>
             </CardContent>
         </Card>

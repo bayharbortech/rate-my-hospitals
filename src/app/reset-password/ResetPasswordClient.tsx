@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,28 +13,30 @@ import { CheckCircle, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { resetPasswordSchema, ResetPasswordFormData } from '@/lib/schemas';
 
 export default function ResetPasswordClient() {
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [serverError, setServerError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [isValidSession, setIsValidSession] = useState<boolean | null>(null);
     const supabase = createClient();
     const router = useRouter();
 
+    const { register, handleSubmit, formState: { errors } } = useForm<ResetPasswordFormData>({
+        resolver: zodResolver(resetPasswordSchema),
+        defaultValues: { password: '', confirmPassword: '' },
+    });
+
     useEffect(() => {
-        // Check if we have a valid session from the reset link
         const checkSession = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             setIsValidSession(!!session);
         };
         checkSession();
 
-        // Listen for auth state changes (when user clicks the reset link)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
             if (event === 'PASSWORD_RECOVERY') {
                 setIsValidSession(true);
@@ -42,33 +46,18 @@ export default function ResetPasswordClient() {
         return () => subscription.unsubscribe();
     }, [supabase.auth]);
 
-    const handleResetPassword = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
-
-        // Validate passwords match
-        if (password !== confirmPassword) {
-            setError('Passwords do not match');
-            return;
-        }
-
-        // Validate password strength
-        if (password.length < 8) {
-            setError('Password must be at least 8 characters long');
-            return;
-        }
-
+    const onSubmit = async (data: ResetPasswordFormData) => {
+        setServerError(null);
         setLoading(true);
 
         const { error } = await supabase.auth.updateUser({
-            password: password,
+            password: data.password,
         });
 
         if (error) {
-            setError(error.message);
+            setServerError(error.message);
         } else {
             setSuccess(true);
-            // Redirect to login after 3 seconds
             setTimeout(() => {
                 router.push('/login');
             }, 3000);
@@ -76,7 +65,6 @@ export default function ResetPasswordClient() {
         setLoading(false);
     };
 
-    // Show loading state while checking session
     if (isValidSession === null) {
         return (
             <div className="container mx-auto flex h-screen w-screen flex-col items-center justify-center">
@@ -85,7 +73,6 @@ export default function ResetPasswordClient() {
         );
     }
 
-    // Show error if no valid session
     if (isValidSession === false) {
         return (
             <div className="container mx-auto flex h-screen w-screen flex-col items-center justify-center">
@@ -138,7 +125,7 @@ export default function ResetPasswordClient() {
                                 </Link>
                             </div>
                         ) : (
-                            <form onSubmit={handleResetPassword}>
+                            <form onSubmit={handleSubmit(onSubmit)}>
                                 <div className="grid gap-4">
                                     <div className="grid gap-2">
                                         <Label htmlFor="password">New password</Label>
@@ -151,26 +138,21 @@ export default function ResetPasswordClient() {
                                                 autoCapitalize="none"
                                                 autoComplete="new-password"
                                                 disabled={loading}
-                                                value={password}
-                                                onChange={(e) => setPassword(e.target.value)}
                                                 className="pl-10 pr-10"
-                                                required
+                                                {...register('password')}
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword(!showPassword)}
                                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                             >
-                                                {showPassword ? (
-                                                    <EyeOff className="w-4 h-4" />
-                                                ) : (
-                                                    <Eye className="w-4 h-4" />
-                                                )}
+                                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                             </button>
                                         </div>
                                         <p className="text-xs text-muted-foreground">
                                             Must be at least 8 characters
                                         </p>
+                                        {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
                                     </div>
                                     <div className="grid gap-2">
                                         <Label htmlFor="confirmPassword">Confirm new password</Label>
@@ -183,26 +165,21 @@ export default function ResetPasswordClient() {
                                                 autoCapitalize="none"
                                                 autoComplete="new-password"
                                                 disabled={loading}
-                                                value={confirmPassword}
-                                                onChange={(e) => setConfirmPassword(e.target.value)}
                                                 className="pl-10 pr-10"
-                                                required
+                                                {...register('confirmPassword')}
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                             >
-                                                {showConfirmPassword ? (
-                                                    <EyeOff className="w-4 h-4" />
-                                                ) : (
-                                                    <Eye className="w-4 h-4" />
-                                                )}
+                                                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                             </button>
                                         </div>
+                                        {errors.confirmPassword && <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>}
                                     </div>
-                                    <ErrorBanner message={error} />
-                                    <Button disabled={loading || !password || !confirmPassword}>
+                                    <ErrorBanner message={serverError} />
+                                    <Button disabled={loading}>
                                         {loading && (
                                             <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
                                         )}
