@@ -1,5 +1,6 @@
 // Home page – server component that fetches featured employers, reviews, and trending data
 // Entry point for the landing page
+// Renders the main HomePageContent component with server-fetched data
 import { getFeaturedEmployers } from '@/lib/data/employers';
 import { getRecentReviews, getFeaturedReview } from '@/lib/data/reviews';
 import { getTrendingHospitals } from '@/lib/data/trending';
