@@ -1,3 +1,4 @@
+// Home page – server component that fetches featured employers, reviews, and trending data
 import { getFeaturedEmployers } from '@/lib/data/employers';
 import { getRecentReviews, getFeaturedReview } from '@/lib/data/reviews';
 import { getTrendingHospitals } from '@/lib/data/trending';
