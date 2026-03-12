@@ -1,8 +1,9 @@
 import { formatISO } from 'date-fns';
 import { requireAdmin } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
+import { parseBody } from '@/lib/api-utils';
+import { blogTopicCreateApiSchema, blogTopicUpdateApiSchema } from '@/lib/schemas';
 
-// GET -- return all topics ordered by created_at desc
 export async function GET() {
     const admin = await requireAdmin();
     if (!admin) {
@@ -21,23 +22,15 @@ export async function GET() {
     return NextResponse.json(data);
 }
 
-// POST -- create a new topic
 export async function POST(request: NextRequest) {
     const admin = await requireAdmin();
     if (!admin) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    let body: { title: string; description?: string };
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    if (!body.title?.trim()) {
-        return NextResponse.json({ error: 'Title is required' }, { status: 400 });
-    }
+    const parsed = await parseBody(request, blogTopicCreateApiSchema);
+    if ('error' in parsed) return parsed.error;
+    const body = parsed.data;
 
     const { data, error } = await admin.supabase
         .from('blog_topics')
@@ -56,32 +49,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
 }
 
-// PUT -- update a topic's title and/or description
 export async function PUT(request: NextRequest) {
     const admin = await requireAdmin();
     if (!admin) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    let body: { id: number; title?: string; description?: string };
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    if (!body.id) {
-        return NextResponse.json({ error: 'Topic id is required' }, { status: 400 });
-    }
+    const parsed = await parseBody(request, blogTopicUpdateApiSchema);
+    if ('error' in parsed) return parsed.error;
+    const body = parsed.data;
 
     const updateData: Record<string, unknown> = {
         updated_at: formatISO(new Date()),
     };
 
     if (body.title !== undefined) {
-        if (!body.title.trim()) {
-            return NextResponse.json({ error: 'Title cannot be empty' }, { status: 400 });
-        }
         updateData.title = body.title.trim();
     }
 
@@ -103,7 +85,6 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(data);
 }
 
-// DELETE -- delete a topic by id
 export async function DELETE(request: NextRequest) {
     const admin = await requireAdmin();
     if (!admin) {

@@ -2,6 +2,7 @@ import { formatISO } from 'date-fns';
 import Anthropic from '@anthropic-ai/sdk';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AIReviewResult } from '@/lib/types';
+import { getServerEnv } from '@/lib/env';
 
 /**
  * Extract JSON from a response that may be wrapped in markdown code fences.
@@ -90,11 +91,7 @@ export async function runAIReview(
     reviewId: string,
     supabase: SupabaseClient
 ): Promise<AIReviewResult | null> {
-    // Set ANTHROPIC_API_KEY in .env.local (local) or Vercel Environment Variables (production)
-    const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-    if (!apiKey) {
-        throw new Error('ANTHROPIC_API_KEY is not configured. Add it to Vercel environment variables and redeploy.');
-    }
+    const { ANTHROPIC_API_KEY: apiKey } = getServerEnv();
 
     // Fetch the review with employer name
     const { data: review, error: fetchError } = await supabase

@@ -1,11 +1,8 @@
 import { formatISO } from 'date-fns';
 import { requireAdmin } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
-
-interface ModerateRequest {
-    status: 'approved' | 'rejected' | 'revision_requested';
-    admin_comment?: string;
-}
+import { parseBody } from '@/lib/api-utils';
+import { moderateReviewApiSchema } from '@/lib/schemas';
 
 export async function PUT(
     request: NextRequest,
@@ -18,26 +15,9 @@ export async function PUT(
 
     const { id } = await params;
 
-    let body: ModerateRequest;
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    if (!body.status || !['approved', 'rejected', 'revision_requested'].includes(body.status)) {
-        return NextResponse.json(
-            { error: 'Invalid status. Must be approved, rejected, or revision_requested' },
-            { status: 400 }
-        );
-    }
-
-    if ((body.status === 'rejected' || body.status === 'revision_requested') && !body.admin_comment) {
-        return NextResponse.json(
-            { error: 'A comment is required when rejecting or requesting revision' },
-            { status: 400 }
-        );
-    }
+    const parsed = await parseBody(request, moderateReviewApiSchema);
+    if ('error' in parsed) return parsed.error;
+    const body = parsed.data;
 
     const updateData: Record<string, unknown> = {
         status: body.status,

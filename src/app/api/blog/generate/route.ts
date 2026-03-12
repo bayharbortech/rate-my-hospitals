@@ -2,6 +2,9 @@ import Anthropic from '@anthropic-ai/sdk';
 import { requireAdmin } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { BLOG_CATEGORIES } from '@/lib/constants';
+import { parseBody } from '@/lib/api-utils';
+import { blogGenerateApiSchema, generatedBlogPostSchema } from '@/lib/schemas';
+import { getServerEnv } from '@/lib/env';
 
 const SYSTEM_PROMPT = `You are a professional blog writer for a healthcare nursing platform called "The Nursing Station." Write in a friendly but professional tone. Your audience is registered nurses, travel nurses, CNAs, and nursing students.
 
@@ -44,20 +47,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    let body: { topicTitle: string; topicDescription?: string };
+    const parsed = await parseBody(request, blogGenerateApiSchema);
+    if ('error' in parsed) return parsed.error;
+    const body = parsed.data;
+
+    let serverEnv;
     try {
-        body = await request.json();
+        serverEnv = getServerEnv();
     } catch {
-        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    if (!body.topicTitle?.trim()) {
-        return NextResponse.json({ error: 'Topic title is required' }, { status: 400 });
-    }
-
-    // Set ANTHROPIC_API_KEY in .env.local (local) or Vercel Environment Variables (production)
-    const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-    if (!apiKey) {
         return NextResponse.json(
             { error: 'Anthropic API key is not configured' },
             { status: 500 }
@@ -65,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     const anthropic = new Anthropic({
-        apiKey,
+        apiKey: serverEnv.ANTHROPIC_API_KEY,
         timeout: 60000,
     });
 
@@ -85,16 +82,9 @@ export async function POST(request: NextRequest) {
         const rawText = message.content[0].type === 'text' ? message.content[0].text : '';
         const jsonText = extractJSON(rawText);
 
-        let result: {
-            title: string;
-            summary: string;
-            category: string;
-            tags: string[];
-            content: string;
-        };
-
+        let rawResult: unknown;
         try {
-            result = JSON.parse(jsonText);
+            rawResult = JSON.parse(jsonText);
         } catch {
             return NextResponse.json(
                 { error: 'AI returned invalid JSON. Please try again.' },
@@ -102,18 +92,21 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        if (!result.title || !result.summary || !result.category || !result.content) {
+        const validation = generatedBlogPostSchema.safeParse(rawResult);
+        if (!validation.success) {
             return NextResponse.json(
                 { error: 'AI response missing required fields. Please try again.' },
                 { status: 500 }
             );
         }
 
+        const result = validation.data;
+
         if (!BLOG_CATEGORIES.includes(result.category as typeof BLOG_CATEGORIES[number])) {
             result.category = 'Tips';
         }
 
-        if (!Array.isArray(result.tags) || result.tags.length === 0) {
+        if (result.tags.length === 0) {
             result.tags = [body.topicTitle.trim()];
         }
 

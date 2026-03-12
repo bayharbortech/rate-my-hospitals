@@ -1,9 +1,10 @@
-import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { BlogPostRequest } from '@/lib/types';
 import { formatISO } from 'date-fns';
 import { DEFAULT_BLOG_IMAGE, DEFAULT_READ_TIME, formatDate } from '@/lib/constants';
+import { parseBody } from '@/lib/api-utils';
+import { blogPostApiSchema, blogPostUpdateApiSchema } from '@/lib/schemas';
 
 export async function GET() {
     const supabase = await createClient();
@@ -26,16 +27,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    let body: BlogPostRequest;
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    if (!body.title || !body.summary || !body.category || !body.content) {
-        return NextResponse.json({ error: 'Missing required fields: title, summary, category, content' }, { status: 400 });
-    }
+    const parsed = await parseBody(request, blogPostApiSchema);
+    if ('error' in parsed) return parsed.error;
+    const body = parsed.data;
 
     const { data: post, error } = await admin.supabase
         .from('blog_posts')
@@ -67,16 +61,9 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    let body: BlogPostRequest;
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    if (!body.id) {
-        return NextResponse.json({ error: 'Missing required field: id' }, { status: 400 });
-    }
+    const parsed = await parseBody(request, blogPostUpdateApiSchema);
+    if ('error' in parsed) return parsed.error;
+    const body = parsed.data;
 
     const { data: post, error } = await admin.supabase
         .from('blog_posts')

@@ -2,11 +2,8 @@ import { formatISO } from 'date-fns';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { runAIReview } from '@/lib/ai-review';
-
-interface ReviseRequest {
-    title: string;
-    review_text: string;
-}
+import { parseBody } from '@/lib/api-utils';
+import { reviseReviewApiSchema } from '@/lib/schemas';
 
 export async function PUT(
     request: NextRequest,
@@ -21,7 +18,6 @@ export async function PUT(
 
     const { id } = await params;
 
-    // Verify the review belongs to this user and is in revision_requested status
     const { data: review, error: fetchError } = await supabase
         .from('reviews')
         .select('id, user_id, status')
@@ -43,19 +39,9 @@ export async function PUT(
         );
     }
 
-    let body: ReviseRequest;
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    if (!body.title || !body.review_text) {
-        return NextResponse.json(
-            { error: 'Title and review text are required' },
-            { status: 400 }
-        );
-    }
+    const parsed = await parseBody(request, reviseReviewApiSchema);
+    if ('error' in parsed) return parsed.error;
+    const body = parsed.data;
 
     const { data, error } = await supabase
         .from('reviews')
@@ -75,7 +61,6 @@ export async function PUT(
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Check admin automation settings
     const { data: settings } = await supabase
         .from('app_settings')
         .select('key, value')
@@ -86,7 +71,6 @@ export async function PUT(
         settingsMap[row.key] = row.value;
     }
 
-    // Run AI review on resubmission if enabled
     let aiResult = null;
     if (settingsMap.auto_ai_review_on_resubmit === true) {
         try {
@@ -96,7 +80,6 @@ export async function PUT(
         }
     }
 
-    // Auto-return to user if AI did not recommend approval
     if (aiResult && aiResult.recommendation !== 'approve' && settingsMap.auto_return_non_approved === true) {
         try {
             const autoComment = aiResult.summary

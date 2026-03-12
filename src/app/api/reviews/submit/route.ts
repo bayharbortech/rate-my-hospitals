@@ -2,34 +2,8 @@ import { formatISO } from 'date-fns';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { runAIReview } from '@/lib/ai-review';
-
-interface SubmitReviewRequest {
-    employer_id: string;
-    rating_overall: number;
-    rating_staffing: number;
-    rating_safety: number;
-    rating_culture: number;
-    rating_management: number;
-    rating_pay_benefits: number;
-    rating_cattiness?: number;
-    patient_load?: string;
-    title: string;
-    review_text: string;
-    department?: string;
-    position_type?: string;
-    // Optional salary
-    salary?: {
-        years_experience: number;
-        hourly_rate: number;
-    };
-    // Optional interview
-    interview?: {
-        difficulty: number;
-        offer_received: boolean;
-        notes: string;
-        questions: string[];
-    };
-}
+import { parseBody } from '@/lib/api-utils';
+import { submitReviewApiSchema } from '@/lib/schemas';
 
 export async function POST(request: NextRequest) {
     const supabase = await createClient();
@@ -39,18 +13,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let body: SubmitReviewRequest;
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
+    const parsed = await parseBody(request, submitReviewApiSchema);
+    if ('error' in parsed) return parsed.error;
+    const body = parsed.data;
 
-    if (!body.employer_id || !body.title || !body.review_text) {
-        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
-    // Insert the review
     const reviewData: Record<string, unknown> = {
         user_id: user.id,
         employer_id: body.employer_id,
@@ -85,7 +51,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 
-    // Insert optional salary
     if (body.salary && body.position_type) {
         const { error: salaryError } = await supabase.from('salaries').insert({
             employer_id: body.employer_id,
@@ -97,7 +62,6 @@ export async function POST(request: NextRequest) {
         if (salaryError) console.error('Salary submission failed:', salaryError);
     }
 
-    // Insert optional interview
     if (body.interview && body.position_type) {
         const { error: interviewError } = await supabase.from('interviews').insert({
             employer_id: body.employer_id,
@@ -110,20 +74,13 @@ export async function POST(request: NextRequest) {
         if (interviewError) console.error('Interview submission failed:', interviewError);
     }
 
-    // Run AI compliance review before responding.
-    // This adds a few seconds to the submission but ensures the AI result
-    // is reliably attached before the admin sees it in the queue.
     let aiResult = null;
     try {
         aiResult = await runAIReview(review.id, supabase);
     } catch (err) {
-        // AI review failure is non-fatal — the review is still submitted.
-        // Admin can manually trigger AI review from the dashboard.
         console.error('Auto AI review failed:', err);
     }
 
-    // If auto-return is enabled and AI did not recommend approval,
-    // automatically send the review back to the user for revision.
     if (aiResult && aiResult.recommendation !== 'approve') {
         try {
             const { data: setting } = await supabase
