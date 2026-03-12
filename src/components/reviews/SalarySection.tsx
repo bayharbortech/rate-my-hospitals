@@ -1,26 +1,15 @@
 'use client';
 
+import { useFormContext } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ReviewFormData } from '@/lib/schemas';
 
-interface SalarySectionProps {
-    show: boolean;
-    onToggle: () => void;
-    hourlyRate: string;
-    onHourlyRateChange: (value: string) => void;
-    yearsExperience: string;
-    onYearsExperienceChange: (value: string) => void;
-}
+export function SalarySection() {
+    const { watch, setValue, register } = useFormContext<ReviewFormData>();
+    const show = watch('showSalary');
 
-export function SalarySection({
-    show,
-    onToggle,
-    hourlyRate,
-    onHourlyRateChange,
-    yearsExperience,
-    onYearsExperienceChange,
-}: SalarySectionProps) {
     return (
         <div className="border rounded-lg p-4 space-y-4">
             <div className="flex items-center justify-between">
@@ -29,7 +18,7 @@ export function SalarySection({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={onToggle}
+                    onClick={() => setValue('showSalary', !show)}
                 >
                     {show ? 'Remove' : 'Add'}
                 </Button>
@@ -42,8 +31,7 @@ export function SalarySection({
                         <Input
                             type="number"
                             placeholder="0.00"
-                            value={hourlyRate}
-                            onChange={e => onHourlyRateChange(e.target.value)}
+                            {...register('hourlyRate')}
                         />
                     </div>
                     <div className="space-y-2">
@@ -51,8 +39,7 @@ export function SalarySection({
                         <Input
                             type="number"
                             placeholder="0"
-                            value={yearsExperience}
-                            onChange={e => onYearsExperienceChange(e.target.value)}
+                            {...register('yearsExperience')}
                         />
                     </div>
                 </div>

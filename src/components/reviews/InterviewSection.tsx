@@ -1,34 +1,17 @@
 'use client';
 
+import { useFormContext } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ReviewFormData } from '@/lib/schemas';
 
-interface InterviewSectionProps {
-    show: boolean;
-    onToggle: () => void;
-    difficulty: number;
-    onDifficultyChange: (value: number) => void;
-    offerReceived: boolean;
-    onOfferReceivedChange: (value: boolean) => void;
-    questions: string;
-    onQuestionsChange: (value: string) => void;
-    notes: string;
-    onNotesChange: (value: string) => void;
-}
+export function InterviewSection() {
+    const { watch, setValue, register } = useFormContext<ReviewFormData>();
+    const show = watch('showInterview');
+    const difficulty = watch('difficulty') || 3;
+    const offerReceived = watch('offerReceived') || false;
 
-export function InterviewSection({
-    show,
-    onToggle,
-    difficulty,
-    onDifficultyChange,
-    offerReceived,
-    onOfferReceivedChange,
-    questions,
-    onQuestionsChange,
-    notes,
-    onNotesChange,
-}: InterviewSectionProps) {
     return (
         <div className="border rounded-lg p-4 space-y-4">
             <div className="flex items-center justify-between">
@@ -37,7 +20,7 @@ export function InterviewSection({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={onToggle}
+                    onClick={() => setValue('showInterview', !show)}
                 >
                     {show ? 'Remove' : 'Add'}
                 </Button>
@@ -54,7 +37,7 @@ export function InterviewSection({
                                     type="button"
                                     variant={difficulty === num ? "default" : "outline"}
                                     size="sm"
-                                    onClick={() => onDifficultyChange(num)}
+                                    onClick={() => setValue('difficulty', num)}
                                 >
                                     {num}
                                 </Button>
@@ -68,7 +51,7 @@ export function InterviewSection({
                                 type="button"
                                 variant={offerReceived ? "default" : "outline"}
                                 size="sm"
-                                onClick={() => onOfferReceivedChange(true)}
+                                onClick={() => setValue('offerReceived', true)}
                             >
                                 Yes
                             </Button>
@@ -76,7 +59,7 @@ export function InterviewSection({
                                 type="button"
                                 variant={!offerReceived ? "default" : "outline"}
                                 size="sm"
-                                onClick={() => onOfferReceivedChange(false)}
+                                onClick={() => setValue('offerReceived', false)}
                             >
                                 No
                             </Button>
@@ -86,16 +69,14 @@ export function InterviewSection({
                         <Label>Interview Questions</Label>
                         <Textarea
                             placeholder="What questions were you asked? (One per line)"
-                            value={questions}
-                            onChange={e => onQuestionsChange(e.target.value)}
+                            {...register('interviewQuestions')}
                         />
                     </div>
                     <div className="space-y-2">
                         <Label>Notes</Label>
                         <Textarea
                             placeholder="Any other details about the process..."
-                            value={notes}
-                            onChange={e => onNotesChange(e.target.value)}
+                            {...register('interviewNotes')}
                         />
                     </div>
                 </div>
