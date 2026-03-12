@@ -200,3 +200,5 @@ create index if not exists idx_questions_employer_id on public.questions(employe
 create index if not exists idx_questions_created_at on public.questions(created_at desc);
 create index if not exists idx_answers_question_id on public.answers(question_id);
 create index if not exists idx_answers_created_at on public.answers(created_at desc);
+
+-- End of migration
