@@ -29,6 +29,7 @@ export const viewport: Viewport = {
   themeColor: "#0d9488",
 };
 
+// Root layout wrapping all pages with shared UI
 export default function RootLayout({
   children,
 }: Readonly<{
